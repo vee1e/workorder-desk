@@ -1,0 +1,102 @@
+# =============================================================================
+# Work Order Management — DEVELOPMENT compose stack
+#
+#   docker compose up --build
+#
+# Runs Mongo 7, the Express API (tsx watch hot reload), and the Vite dev
+# server (HMR) with bind-mounts so source edits hot-apply. nginx is NOT used
+# in dev: Vite proxies /api, /health, /ready to the api service (SPEC §4).
+#
+# IMPORTANT (dev proxy): the Vite dev proxy target inside this compose network
+# must be http://api:4000 (the api service name). `frontend/vite.config.ts`
+# reads that from VITE_PROXY_TARGET (defaults to http://localhost:4000 on the
+# host, set to http://api:4000 in this file). See README.md.
+#
+# Dockerfile targets: backend/Dockerfile:dev and frontend/Dockerfile:dev run
+# the dev stages (full deps + source). Both containers also run a `tsc --watch`
+# on packages/shared so shared schema/type edits rebuild dist/ live.
+# =============================================================================
+
+name: workorders-dev
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    # Named volume so data survives `docker compose down`.
+    volumes:
+      - mongo-data:/data/db
+    # Published so host-side tooling (`npm run seed` with
+    # MONGODB_URI=mongodb://localhost:27017/workorders) can reach Mongo.
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    image: workorders-api:dev
+    restart: unless-stopped
+    init: true
+    working_dir: /app/backend
+    # Rebuild packages/shared dist/ on change, then run tsx watch (hot reload).
+    command: >
+      sh -c "npx tsc -p ../packages/shared/tsconfig.json --watch --preserveWatchOutput &
+             exec npx tsx watch src/server.ts"
+    environment:
+      NODE_ENV: development
+      PORT: "4000"
+      MONGODB_URI: mongodb://mongo:27017/workorders
+      # ── dev only: long random-looking values so backend validation passes.
+      #    These are NOT secrets; production reads real values from .env.
+      JWT_SECRET: dev-only-e7c1a9f34d5b8e2c0a6f9d1b4c7e3a85
+      COOKIE_SECRET: dev-only-b2f6a4d9c8e1b3f7a5c0d2e4f8b6a1c7
+      CORS_ORIGIN: http://localhost:5173
+      APP_URL: http://localhost:5173
+      TRUST_PROXY_HOPS: "0"
+      DEBUG_ERRORS: "true"
+      LOG_LEVEL: debug
+    volumes:
+      - ./backend/src:/app/backend/src
+      - ./packages/shared/src:/app/packages/shared/src
+    ports:
+      - "4000:4000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  vite:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: dev
+    image: workorders-vite:dev
+    restart: unless-stopped
+    init: true
+    working_dir: /app/frontend
+    # Keep packages/shared dist/ fresh for Vite, then start the dev server.
+    command: >
+      sh -c "npx tsc -p ../packages/shared/tsconfig.json --watch --preserveWatchOutput &
+             exec npm run dev -- --host 0.0.0.0"
+    environment:
+      NODE_ENV: development
+      VITE_APP_URL: http://localhost:5173
+      VITE_PROXY_TARGET: http://api:4000
+      # Unset / empty => Vite dev proxy handles /api (SPEC §10).
+    volumes:
+      - ./frontend/src:/app/frontend/src
+      - ./packages/shared/src:/app/packages/shared/src
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  mongo-data:

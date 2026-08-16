@@ -1,0 +1,77 @@
+# =============================================================================
+# Work Order Management — PRODUCTION compose stack
+#
+#   cp .env.example .env   # fill in REAL secrets first
+#   docker compose -f docker-compose.prod.yml up --build -d
+#
+# mongo + api live on an internal network only; nginx :80 is the only public
+# entry point. The API reads secrets from .env (never baked into the image).
+# nginx.conf is mounted read-only from ./nginx/nginx.conf.
+# =============================================================================
+
+name: workorders-prod
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    image: workorders-api:prod
+    restart: unless-stopped
+    # Secrets come from .env — overrides below only fix container-local wiring.
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/workorders
+      # nginx is the only proxy in front of the API; one trusted hop.
+      TRUST_PROXY_HOPS: "1"
+    expose:
+      - "4000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - internal
+
+  nginx:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: prod
+      args:
+        # Baked into the bundle at build time; empty => same-origin (relative /api).
+        VITE_APP_URL: ${VITE_APP_URL:-}
+        VITE_API_URL: ${VITE_API_URL:-}
+    image: workorders-nginx:prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  mongo-data:
