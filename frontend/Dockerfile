@@ -53,6 +53,9 @@ RUN npm run build -w frontend
 FROM nginx:1.27-alpine AS prod
 
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
+# Bake the reverse-proxy config in so the image works standalone; compose may
+# override it with a mount for easier edits.
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80
 

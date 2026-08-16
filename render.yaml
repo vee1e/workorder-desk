@@ -3,18 +3,18 @@ services:
     name: workorders-api
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build -w @workorders/shared && npm run build -w backend
+    buildCommand: NODE_ENV=development npm ci && npm run build -w @workorders/shared && npm run build -w backend
     startCommand: node backend/dist/server.js
-    healthCheckPath: /health
+    healthCheckPath: /ready
     envVars:
       - key: NODE_ENV
         value: production
       - key: TRUST_PROXY_HOPS
         value: "2"
       - key: CORS_ORIGIN
-        value: https://workorders-desk.vercel.app
+        value: https://workorder.lverma.com
       - key: APP_URL
-        value: https://workorders-desk.vercel.app
+        value: https://workorder.lverma.com
       # sync: false → values are entered in the Render dashboard at create time
       - key: MONGODB_URI
         sync: false
@@ -22,3 +22,7 @@ services:
         sync: false
       - key: COOKIE_SECRET
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: Work Order Desk <no-reply@mail.lverma.com>
