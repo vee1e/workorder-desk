@@ -57,9 +57,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run test -w @workorders/shared
-      - run: npm run test:coverage -w backend
-      - run: npm run test:coverage -w frontend
+      - run: npm run test:coverage
 
   build:
     name: Build

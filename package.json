@@ -20,11 +20,13 @@
   },
   "scripts": {
     "build": "npm run build -w @workorders/shared && npm run build -w backend && npm run build -w frontend",
-    "dev": "npm run dev -w backend & npm run dev -w frontend & wait",
+    "dev": "npm run build -w @workorders/shared && npm run dev -w backend & npm run dev -w frontend & wait",
     "lint": "npm run lint -w @workorders/shared && npm run lint -w backend && npm run lint -w frontend",
-    "typecheck": "npm run typecheck -w @workorders/shared && npm run typecheck -w backend && npm run typecheck -w frontend",
-    "test": "npm run test -w @workorders/shared && npm run test -w backend && npm run test -w frontend",
-    "seed": "npm run seed -w backend"
+    "typecheck": "npm run build -w @workorders/shared && npm run typecheck -w @workorders/shared && npm run typecheck -w backend && npm run typecheck -w frontend",
+    "test": "npm run build -w @workorders/shared && npm run test -w @workorders/shared && npm run test -w backend && npm run test -w frontend",
+    "test:coverage": "npm run build -w @workorders/shared && npm run test:coverage -w backend && npm run test:coverage -w frontend",
+    "seed": "npm run seed -w backend",
+    "seed:demo": "npm run seed:demo -w backend"
   },
   "allowScripts": {
     "mongodb-memory-server": true,
