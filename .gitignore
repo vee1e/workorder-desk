@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+yarn.lock
+pnpm-lock.yaml
+.vscode/
+.idea/
+.vercel

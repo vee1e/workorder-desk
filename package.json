@@ -1,0 +1,35 @@
+{
+  "name": "mern-starter-app",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Field Service Work Order Management — production-oriented MERN monorepo",
+  "workspaces": [
+    "packages/shared",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "typescript-eslint": "^8.3.0"
+  },
+  "scripts": {
+    "build": "npm run build -w @workorders/shared && npm run build -w backend && npm run build -w frontend",
+    "dev": "npm run dev -w backend & npm run dev -w frontend & wait",
+    "lint": "npm run lint -w @workorders/shared && npm run lint -w backend && npm run lint -w frontend",
+    "typecheck": "npm run typecheck -w @workorders/shared && npm run typecheck -w backend && npm run typecheck -w frontend",
+    "test": "npm run test -w @workorders/shared && npm run test -w backend && npm run test -w frontend",
+    "seed": "npm run seed -w backend"
+  },
+  "allowScripts": {
+    "mongodb-memory-server": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true,
+    "express-rate-limit": true
+  }
+}
