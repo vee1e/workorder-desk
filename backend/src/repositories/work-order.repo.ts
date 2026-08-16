@@ -2,6 +2,7 @@ import type { WorkOrderPriority, WorkOrderStatus } from '@workorders/shared';
 import { WorkOrder, type WorkOrderDoc } from '../models/work-order.model.js';
 import { signCursor, verifyCursor, type CursorPayload } from '../utils/cursor.js';
 import { validation } from '../utils/http-error.js';
+import { escapeRegex } from '../utils/regex.js';
 
 function parseCursor(cursor: string | undefined): CursorPayload | null {
   if (!cursor) return null;
@@ -10,10 +11,6 @@ function parseCursor(cursor: string | undefined): CursorPayload | null {
     throw validation([{ field: 'cursor', message: 'Invalid cursor' }]);
   }
   return payload;
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export interface WorkOrderListQuery {

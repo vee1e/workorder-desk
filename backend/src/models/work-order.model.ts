@@ -31,8 +31,11 @@ const workOrderSchema = new Schema<WorkOrderDoc>(
 );
 
 workOrderSchema.index({ owner: 1, deletedAt: 1, createdAt: -1, _id: -1 });
+workOrderSchema.index({ owner: 1, deletedAt: 1, status: 1, createdAt: -1, _id: -1 });
+workOrderSchema.index({ owner: 1, deletedAt: 1, priority: 1, createdAt: -1, _id: -1 });
 workOrderSchema.index({ owner: 1, status: 1, deletedAt: 1 });
 workOrderSchema.index({ owner: 1, priority: 1, deletedAt: 1 });
+workOrderSchema.index({ deletedAt: 1, createdAt: -1, _id: -1 });
 
 export const WorkOrder = (models.WorkOrder ?? model('WorkOrder', workOrderSchema)) as Model<WorkOrderDoc>;
 
