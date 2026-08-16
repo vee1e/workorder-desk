@@ -21,6 +21,7 @@ export default defineConfig({
     css: false,
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'lcov'],
       // Business logic modules — the threshold applies to included files.
       include: [
         'src/lib/**/*.{ts,tsx}',

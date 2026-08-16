@@ -9,6 +9,7 @@ export default defineConfig({
     hookTimeout: 60000,
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
       exclude: ['src/server.ts', 'src/scripts/**', 'src/types/**', 'src/config/logger.ts'],
       thresholds: {
