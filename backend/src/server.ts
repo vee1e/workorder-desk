@@ -13,7 +13,10 @@ async function main(): Promise<void> {
 
   const shutdown = (signal: string): void => {
     logger.info({ signal }, 'shutting down');
+    const force = setTimeout(() => process.exit(1), 10_000);
+    force.unref();
     server.close(async () => {
+      clearTimeout(force);
       await mongoose.disconnect();
       process.exit(0);
     });
@@ -22,6 +25,16 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'unhandled rejection');
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error({ err }, 'uncaught exception');
+  process.exit(1);
+});
 
 function redact(uri: string): string {
   try {
