@@ -6,6 +6,7 @@ import { LoginPage } from './LoginPage';
 
 vi.mock('../../api/client', () => ({
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+  REDIRECT_STORAGE_KEY: 'test.redirect',
 }));
 
 import { api } from '../../api/client';

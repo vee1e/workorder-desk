@@ -1,7 +1,9 @@
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginSchema } from '@workorders/shared';
 import { useLogin } from '../../hooks/useAuth';
+import { REDIRECT_STORAGE_KEY } from '../../api/client';
 import { ApiError } from '../../lib/errors';
 import { Button } from '../../components/primitives/Spinner';
 import { Field, Input } from '../../components/primitives/Input';
@@ -9,6 +11,7 @@ import { Card, CardBody, CardHeader } from '../../components/primitives/Card';
 import { ErrorBanner } from '../../components/primitives/Feedback';
 
 export function LoginPage() {
+  usePageTitle('Sign in');
   const login = useLogin();
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,7 +19,9 @@ export function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/app';
+  const storedFrom = sessionStorage.getItem(REDIRECT_STORAGE_KEY);
+  const from = (location.state as { from?: string } | null)?.from ?? storedFrom ?? '/app';
+  if (storedFrom) sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +45,7 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <Card className="w-full max-w-md">
-        <CardHeader title="Sign in" description="Welcome back to the work order desk." />
+        <CardHeader as="h1" title="Sign in" description="Welcome back to the work order desk." />
         <CardBody>
           {formError && <ErrorBanner className="mb-4" message={formError} />}
           <form onSubmit={onSubmit} className="space-y-4" noValidate>

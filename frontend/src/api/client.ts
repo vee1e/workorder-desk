@@ -2,8 +2,18 @@ import type { ErrorEnvelope, SuccessEnvelope } from '@workorders/shared';
 import { ApiError } from '../lib/errors';
 
 const BASE_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1';
+export const REDIRECT_STORAGE_KEY = 'workorders.redirect';
 
 let refreshPromise: Promise<boolean> | null = null;
+let redirecting = false;
+
+function saveRedirect(path: string): void {
+  try {
+    sessionStorage.setItem(REDIRECT_STORAGE_KEY, path);
+  } catch {
+    // storage unavailable; intent is lost, which is acceptable
+  }
+}
 
 async function parseEnvelope<T>(res: Response): Promise<T> {
   if (res.status === 204) {
@@ -54,18 +64,27 @@ async function refreshTokens(): Promise<boolean> {
   return refreshPromise;
 }
 
+function redirectToLogin(): void {
+  if (redirecting) return;
+  redirecting = true;
+  if (typeof window !== 'undefined') {
+    saveRedirect(window.location.pathname + window.location.search);
+    window.location.assign('/login');
+  }
+}
+
 async function request<T>(path: string, init: RequestInit, retried = false): Promise<T> {
   try {
     return await requestEnvelope<T>(path, init);
   } catch (err) {
-    if (err instanceof ApiError && err.status === 401 && !retried && !path.startsWith('/auth/')) {
-      const refreshed = await refreshTokens();
-      if (refreshed) {
-        return request<T>(path, init, true);
+    if (err instanceof ApiError && err.status === 401 && !path.startsWith('/auth/')) {
+      if (!retried) {
+        const refreshed = await refreshTokens();
+        if (refreshed) {
+          return request<T>(path, init, true);
+        }
       }
-      if (typeof window !== 'undefined') {
-        window.location.assign('/login');
-      }
+      redirectToLogin();
     }
     throw err;
   }
