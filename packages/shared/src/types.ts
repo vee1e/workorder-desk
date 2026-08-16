@@ -97,5 +97,3 @@ export const REFRESH_TOKEN_TTL_SECONDS = 604800;
 
 export const APP_ISS = 'workorders';
 export const APP_AUD = 'workorders-api';
-
-export const CURSOR_SECRET_MIN_LENGTH = 32;

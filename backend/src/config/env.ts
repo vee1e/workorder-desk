@@ -26,7 +26,6 @@ const envSchema = z.object({
   COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters'),
   CORS_ORIGIN: z.string().min(1, 'CORS_ORIGIN is required'),
   APP_URL: z.string().min(1, 'APP_URL is required'),
-  SMTP_URL: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM: z.string().optional(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
