@@ -136,6 +136,42 @@ describe('auth', () => {
     expect(reused.status).toBe(401);
   });
 
+  it('logout with only an access cookie revokes the current session (AUTH-6)', async () => {
+    const { res: regRes, agent: a } = await registerUser('logouttokenless@example.com');
+    const accessCookie = cookieFrom(regRes, 'access_token')!;
+    const refreshCookie = cookieFrom(regRes, 'refresh_token')!;
+    // logout without the refresh cookie: the current session must be revoked
+    const out = await request(app).post('/api/v1/auth/logout').set('Cookie', accessCookie);
+    expect(out.status).toBe(204);
+    const reused = await request(app).post('/api/v1/auth/refresh').set('Cookie', refreshCookie);
+    expect(reused.status).toBe(401);
+    void a;
+  });
+
+  it('expired lockout recovers: a later wrong password does not re-lock from a stale count (AUTH-11)', async () => {
+    await registerUser('recover@example.com');
+    for (let i = 0; i < 5; i++) {
+      await agent().post('/api/v1/auth/login').send({ email: 'recover@example.com', password: 'Wrong999' });
+    }
+    const locked = await loginUser('recover@example.com');
+    expect(locked.res.status).toBe(401);
+
+    // age the lock and the failure window so both lapse
+    const mongoose = await import('mongoose');
+    await mongoose.connection.db!.collection('users').updateOne(
+      { email: 'recover@example.com' },
+      { $set: { lockedUntil: new Date(Date.now() - 60_000), failedLoginWindowStartAt: new Date(Date.now() - 60 * 60 * 1000) } },
+    );
+
+    // one more wrong password must start a fresh window, not re-lock
+    const wrong = await agent().post('/api/v1/auth/login').send({ email: 'recover@example.com', password: 'Wrong999' });
+    expect(wrong.status).toBe(401);
+
+    // correct password now succeeds
+    const ok = await loginUser('recover@example.com');
+    expect(ok.res.status).toBe(200);
+  });
+
   it('logout-all revokes every family (AUTH-6)', async () => {
     const { agent: a } = await registerUser('all@example.com');
     const c1 = cookieFrom(await a.post('/api/v1/auth/refresh'), 'refresh_token')!;

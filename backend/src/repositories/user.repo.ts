@@ -1,5 +1,6 @@
 import type { Role } from '@workorders/shared';
-import { User, toUserAdmin, type UserDoc } from '../models/user.model.js';
+import { User, type UserDoc } from '../models/user.model.js';
+import { escapeRegex } from '../utils/regex.js';
 
 export class DuplicateEmailError extends Error {
   constructor() {
@@ -8,21 +9,12 @@ export class DuplicateEmailError extends Error {
   }
 }
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
 
 export const userRepo = {
   async findByEmail(email: string): Promise<UserDoc | null> {
     return User.findOne({ email }).lean();
-  },
-
-  async findAuthByEmail(email: string): Promise<UserDoc | null> {
-    return User.findOne({ email }).lean();
-  },
-
-  async findAuthById(id: string): Promise<UserDoc | null> {
-    return User.findById(id).lean();
   },
 
   async findById(id: string): Promise<UserDoc | null> {
@@ -49,15 +41,46 @@ export const userRepo = {
     await User.updateOne({ _id: id }, { $set: { lastLoginAt: new Date() } });
   },
 
-  async incrementFailedLogins(id: string, lockUntil: Date): Promise<void> {
-    const user = await User.findByIdAndUpdate(id, { $inc: { failedLoginCount: 1 } }, { new: true }).lean();
-    if (user && user.failedLoginCount >= 5 && !user.lockedUntil) {
-      await User.updateOne({ _id: id }, { $set: { lockedUntil: lockUntil } });
-    }
+  // Counts failures within a rolling 15-minute window only. Locks once the
+  // threshold is reached inside the window and never re-arms from a stale count.
+  async incrementFailedLogins(id: string): Promise<void> {
+    const now = new Date();
+    const windowFloor = new Date(Date.now() - LOCKOUT_WINDOW_MS);
+    const inWindow = {
+      $and: [{ $ne: ['$failedLoginWindowStartAt', null] }, { $gte: ['$failedLoginWindowStartAt', windowFloor] }],
+    };
+    await User.updateOne(
+      { _id: id },
+      [
+        {
+          $set: {
+            failedLoginWindowStartAt: { $cond: [inWindow, '$failedLoginWindowStartAt', now] },
+            failedLoginCount: {
+              $cond: [inWindow, { $add: [{ $ifNull: ['$failedLoginCount', 0] }, 1] }, 1],
+            },
+            lockedUntil: {
+              $cond: [
+                {
+                  $and: [
+                    { $gte: [{ $add: [{ $ifNull: ['$failedLoginCount', 0] }, 1] }, LOCKOUT_THRESHOLD] },
+                    { $eq: ['$lockedUntil', null] },
+                  ],
+                },
+                new Date(Date.now() + LOCKOUT_WINDOW_MS),
+                '$lockedUntil',
+              ],
+            },
+          },
+        },
+      ],
+    );
   },
 
   async resetFailedLogins(id: string): Promise<void> {
-    await User.updateOne({ _id: id }, { $set: { failedLoginCount: 0, lockedUntil: null } });
+    await User.updateOne(
+      { _id: id },
+      { $set: { failedLoginCount: 0, failedLoginWindowStartAt: null, lockedUntil: null } },
+    );
   },
 
   async countAdmins(): Promise<number> {
@@ -120,9 +143,5 @@ export const userRepo = {
       'passwordReset.tokenHash': tokenHash,
       'passwordReset.expiresAt': { $gt: new Date() },
     }).lean();
-  },
-
-  toAdmin(doc: UserDoc) {
-    return toUserAdmin(doc);
   },
 };

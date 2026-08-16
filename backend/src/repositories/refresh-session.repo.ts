@@ -33,15 +33,12 @@ export const refreshSessionRepo = {
     await RefreshSession.updateMany({ familyId }, { $set: { revokedAt: new Date() } });
   },
 
-  async revokeAllForUser(userId: string): Promise<void> {
-    await RefreshSession.updateMany({ userId }, { $set: { revokedAt: new Date() } });
+  async revokeById(id: string): Promise<void> {
+    await RefreshSession.updateOne({ _id: id }, { $set: { revokedAt: new Date() } });
   },
 
-  async revokeAllExcept(userId: string, sessionId: string): Promise<void> {
-    await RefreshSession.updateMany(
-      { userId, _id: { $ne: sessionId }, revokedAt: null },
-      { $set: { revokedAt: new Date() } },
-    );
+  async revokeAllForUser(userId: string): Promise<void> {
+    await RefreshSession.updateMany({ userId }, { $set: { revokedAt: new Date() } });
   },
 
   async revokeForUsers(userIds: string[]): Promise<void> {

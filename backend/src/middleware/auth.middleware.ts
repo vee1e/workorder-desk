@@ -14,7 +14,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     } catch {
       throw unauthorized();
     }
-    const user = await userRepo.findAuthById(claims.sub);
+    const user = await userRepo.findById(claims.sub);
     if (!user || !user.isActive) throw unauthorized();
     req.actor = { id: user._id.toString(), role: user.role };
     req.sessionId = claims.sid;

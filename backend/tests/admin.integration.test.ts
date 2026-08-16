@@ -51,6 +51,11 @@ describe('admin', () => {
     const promoted = await admin.patch(`/api/v1/admin/users/${me.body.data.id}/role`).send({ role: 'user' });
     expect(promoted.status).toBe(403);
     expect(promoted.body.error.code).toBe('FORBIDDEN');
+
+    // demoting the last admin to viewer is also rejected
+    const toViewer = await admin.patch(`/api/v1/admin/users/${me.body.data.id}/role`).send({ role: 'viewer' });
+    expect(toViewer.status).toBe(403);
+    expect(toViewer.body.error.code).toBe('FORBIDDEN');
   });
 
   it('promotes and demotes another user; demotion revokes sessions (ADM-2)', async () => {

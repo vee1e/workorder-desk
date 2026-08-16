@@ -22,7 +22,7 @@ export async function issueSession(
   ip?: string,
   userAgent?: string,
 ): Promise<AuthResult> {
-  const user = await userRepo.findAuthById(userId);
+  const user = await userRepo.findById(userId);
   if (!user) throw notFound();
   const token = randomBytes(32).toString('base64url');
   const session = await refreshSessionRepo.create({

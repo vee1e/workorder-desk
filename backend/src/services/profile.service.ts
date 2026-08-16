@@ -21,12 +21,11 @@ export const profileService = {
 
   async changePassword(
     id: string,
-    sessionId: string,
     input: { currentPassword: string; newPassword: string },
     ip?: string,
     userAgent?: string,
   ): Promise<AuthResult> {
-    const user = await userRepo.findAuthById(id);
+    const user = await userRepo.findById(id);
     if (!user) throw notFound();
     const ok = await comparePassword(input.currentPassword, user.passwordHash);
     if (!ok) throw authGeneric();

@@ -30,13 +30,13 @@ export const adminService = {
     if (targetId === adminId) throw forbidden('Cannot change your own role');
     const target = await userRepo.findById(targetId);
     if (!target) throw notFound();
-    if (target.role === 'admin' && role === 'user') {
+    if (target.role === 'admin' && role !== 'admin') {
       const admins = await userRepo.countAdmins();
       if (admins <= 1) throw forbidden('Cannot demote the last admin');
     }
     const updated = await userRepo.updateRole(targetId, role);
     if (!updated) throw notFound();
-    if (target.role === 'admin' && role === 'user') {
+    if (target.role === 'admin' && role !== 'admin') {
       await refreshSessionRepo.revokeForUsers([targetId]);
     }
     return toUserAdmin(updated);

@@ -13,6 +13,7 @@ export interface UserDoc {
   isActive: boolean;
   lastLoginAt: Date | null;
   failedLoginCount: number;
+  failedLoginWindowStartAt: Date | null;
   lockedUntil: Date | null;
   passwordReset?: {
     tokenHash?: string;
@@ -31,6 +32,7 @@ const userSchema = new Schema<UserDoc>(
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date, default: null },
     failedLoginCount: { type: Number, default: 0 },
+    failedLoginWindowStartAt: { type: Date, default: null },
     lockedUntil: { type: Date, default: null },
     passwordReset: {
       tokenHash: { type: String },
@@ -41,6 +43,7 @@ const userSchema = new Schema<UserDoc>(
 );
 
 userSchema.index({ role: 1 });
+userSchema.index({ createdAt: -1 });
 
 export const User = (models.User ?? model('User', userSchema)) as Model<UserDoc>;
 

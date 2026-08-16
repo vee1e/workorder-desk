@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
-import { REFRESH_COOKIE } from '@workorders/shared';
+import { ACCESS_COOKIE, REFRESH_COOKIE } from '@workorders/shared';
 import { authService } from '../services/auth.service.js';
 import { clearAuthCookies, setAuthCookies } from '../utils/cookies.js';
+import { verifyAccessToken } from '../utils/tokens.js';
 import { unauthorized } from '../utils/http-error.js';
 
 export const authController = {
@@ -28,10 +29,19 @@ export const authController = {
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const refreshToken = req.signedCookies?.[REFRESH_COOKIE];
-      if (req.actor && req.sessionId) {
-        await authService.logout(req.actor.id, req.sessionId, refreshToken);
-      } else if (typeof refreshToken === 'string' && refreshToken) {
+      const accessToken = req.signedCookies?.[ACCESS_COOKIE];
+      let sid: string | undefined;
+      if (typeof accessToken === 'string' && accessToken) {
+        try {
+          sid = verifyAccessToken(accessToken).sid;
+        } catch {
+          // access token is invalid or expired; the refresh token still revokes
+        }
+      }
+      if (typeof refreshToken === 'string' && refreshToken) {
         await authService.logoutByRefreshToken(refreshToken);
+      } else if (sid) {
+        await authService.logoutBySessionId(sid);
       }
       clearAuthCookies(res);
       res.status(204).end();

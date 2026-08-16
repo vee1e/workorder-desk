@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { REFRESH_TOKEN_TTL_SECONDS } from '@workorders/shared';
-import { userRepo } from '../repositories/user.repo.js';
+import { userRepo, DuplicateEmailError } from '../repositories/user.repo.js';
 import { refreshSessionRepo } from '../repositories/refresh-session.repo.js';
 import { hashPassword, comparePassword, dummyCompare } from '../utils/passwords.js';
 import { signAccessToken } from '../utils/tokens.js';
@@ -14,16 +14,22 @@ export const authService = {
     const existing = await userRepo.findByEmail(input.email);
     if (existing) throw emailTaken();
     const passwordHash = await hashPassword(input.password);
-    const user = await userRepo.createUser({
-      email: input.email,
-      name: input.name,
-      passwordHash,
-    });
+    let user;
+    try {
+      user = await userRepo.createUser({
+        email: input.email,
+        name: input.name,
+        passwordHash,
+      });
+    } catch (err) {
+      if (err instanceof DuplicateEmailError) throw emailTaken();
+      throw err;
+    }
     return issueSession(user._id.toString(), user.role);
   },
 
   async login(input: { email: string; password: string }, ip?: string, userAgent?: string): Promise<AuthResult> {
-    const user = await userRepo.findAuthByEmail(input.email);
+    const user = await userRepo.findByEmail(input.email);
     if (!user) {
       await dummyCompare();
       throw authGeneric();
@@ -34,7 +40,7 @@ export const authService = {
     }
     const ok = await comparePassword(input.password, user.passwordHash);
     if (!ok) {
-      await userRepo.incrementFailedLogins(user._id.toString(), new Date(Date.now() + 15 * 60 * 1000));
+      await userRepo.incrementFailedLogins(user._id.toString());
       throw authGeneric();
     }
     if (!user.isActive) throw authGeneric();
@@ -46,17 +52,15 @@ export const authService = {
   async refresh(refreshToken: string, ip?: string, userAgent?: string): Promise<AuthResult> {
     const session = await refreshSessionRepo.findByTokenHash(sha256hex(refreshToken));
     if (!session) throw unauthorized();
-    const user = await userRepo.findAuthById(session.userId.toString());
+    const user = await userRepo.findById(session.userId.toString());
     if (!user || !user.isActive) throw unauthorized();
     const now = Date.now();
     if (session.expiresAt.getTime() < now || session.revokedAt) throw unauthorized();
-
+    // A consumed token is always reuse: never slide the window or mint again.
+    // The client single-flights refresh, so parallel legitimate requests do not occur.
     if (session.usedAt) {
-      const withinGrace = now - session.usedAt.getTime() <= 10_000;
-      if (!withinGrace) {
-        await refreshSessionRepo.revokeFamily(session.familyId);
-        throw refreshReuse();
-      }
+      await refreshSessionRepo.revokeFamily(session.familyId);
+      throw refreshReuse();
     }
 
     await refreshSessionRepo.markUsed(session._id.toString());
@@ -82,24 +86,15 @@ export const authService = {
     };
   },
 
-  async logout(userId: string, sessionId: string, refreshToken?: string): Promise<void> {
-    if (refreshToken) {
-      const session = await refreshSessionRepo.findByTokenHash(sha256hex(refreshToken));
-      if (session && session.userId.toString() === userId) {
-        await refreshSessionRepo.revokeFamily(session.familyId);
-        return;
-      }
-    }
-    if (sessionId) {
-      await refreshSessionRepo.revokeAllExcept(userId, sessionId);
-    }
-  },
-
   async logoutByRefreshToken(refreshToken: string): Promise<void> {
     const session = await refreshSessionRepo.findByTokenHash(sha256hex(refreshToken));
     if (session) {
       await refreshSessionRepo.revokeFamily(session.familyId);
     }
+  },
+
+  async logoutBySessionId(sessionId: string): Promise<void> {
+    await refreshSessionRepo.revokeById(sessionId);
   },
 
   async logoutAll(userId: string): Promise<void> {
