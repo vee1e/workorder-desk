@@ -53,6 +53,15 @@ export function AppLayout() {
         </button>
       </header>
 
+      {/* Mobile nav */}
+      <nav aria-label="App" className="flex gap-1 overflow-x-auto border-b border-line bg-ink-900 px-3 py-2 lg:hidden">
+        {items.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
       {/* Desktop rail */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-ink-900 lg:flex">
         <div className="flex items-center gap-2.5 px-5 py-6">
