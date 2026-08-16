@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDeleteWorkOrder, useUpdateWorkOrder, useWorkOrder } from './queries';
-import { WorkOrderForm } from './WorkOrderForm';
+import { WorkOrderForm, type WorkOrderSubmitValues } from './WorkOrderForm';
 import { useMe } from '../../hooks/useAuth';
 import { PageHeader, ErrorBanner } from '../../components/primitives/Feedback';
 import { Button, FullPageSpinner } from '../../components/primitives/Spinner';
@@ -10,6 +10,7 @@ import { Badge } from '../../components/primitives/Badge';
 import { ConfirmDialog } from '../../components/primitives/ConfirmDialog';
 import { cn, formatDate, ticketNo } from '../../lib/utils';
 import { ApiError, messageFromError } from '../../lib/errors';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export function WorkOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -17,14 +18,18 @@ export function WorkOrderDetailPage() {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<WorkOrderSubmitValues | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   const { data: me } = useMe();
   const isViewer = me?.role === 'viewer';
   const { data: wo, isPending, isError, error: queryError, refetch } = useWorkOrder(id);
   const update = useUpdateWorkOrder(id!);
   const remove = useDeleteWorkOrder(id!);
+  usePageTitle(wo?.title ?? 'Work order');
 
-  if (isPending) return <FullPageSpinner />;
+  if (isPending && !wo) return <FullPageSpinner />;
   if (isError || !wo) {
     return (
       <div className="space-y-4">
@@ -35,6 +40,20 @@ export function WorkOrderDetailPage() {
       </div>
     );
   }
+
+  const formInitial = conflict && lastAttempt
+    ? {
+        title: lastAttempt.title,
+        description: lastAttempt.description ?? '',
+        priority: lastAttempt.priority,
+        status: lastAttempt.status,
+      }
+    : {
+        title: wo.title,
+        description: wo.description ?? '',
+        priority: wo.priority,
+        status: wo.status,
+      };
 
   return (
     <div>
@@ -71,12 +90,8 @@ export function WorkOrderDetailPage() {
         <Card className="max-w-2xl">
           <CardBody>
             <WorkOrderForm
-              initial={{
-                title: wo.title,
-                description: wo.description ?? '',
-                priority: wo.priority,
-                status: wo.status,
-              }}
+              key={formKey}
+              initial={formInitial}
               submitting={update.isPending}
               error={update.isError ? messageFromError(update.error) : null}
               submitLabel="Save changes"
@@ -85,11 +100,15 @@ export function WorkOrderDetailPage() {
                   await update.mutateAsync({ ...values, version: wo.version });
                   setEditing(false);
                   setError(null);
+                  setConflict(false);
+                  setLastAttempt(null);
                 } catch (err) {
                   if (err instanceof ApiError && err.code === 'CONFLICT_VERSION') {
-                    setError('This work order was changed elsewhere. Reloading latest version.');
-                    setEditing(false);
-                    void refetch();
+                    setConflict(true);
+                    setLastAttempt(values);
+                    setError('This work order was changed elsewhere. Review the latest version, then save again.');
+                    setFormKey((k) => k + 1);
+                    await refetch();
                   } else {
                     setError(err instanceof ApiError ? err.message : 'Update failed');
                   }
