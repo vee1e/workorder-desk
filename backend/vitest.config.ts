@@ -7,6 +7,9 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30000,
     hookTimeout: 60000,
+    // Test files share one database (dropDatabase per test). Run them
+    // sequentially so a real shared Mongo does not hit "database is being dropped".
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
