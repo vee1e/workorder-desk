@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useCreateWorkOrder, useDeleteWorkOrder, useUpdateWorkOrder, useWorkOrder, useWorkOrders } from './queries';
+import { useCreateWorkOrder, useDeleteWorkOrder, useUpdateWorkOrder, useWorkOrder, useWorkOrderBoard } from './queries';
 import { createQueryClient } from '../../test/utils';
 
 vi.mock('../../api/client', () => ({
@@ -32,12 +32,21 @@ describe('work order queries', () => {
     vi.clearAllMocks();
   });
 
-  it('lists work orders with a query string', async () => {
+  it('lists own work orders with a query string', async () => {
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [wo], nextCursor: 'abc' });
-    const { result } = renderHook(() => useWorkOrders({ status: 'pending', priority: 'high' }), { wrapper });
+    const { result } = renderHook(() => useWorkOrderBoard({ status: 'pending', priority: 'high' }, undefined, 'own'), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(api.get).toHaveBeenCalledWith('/work-orders?status=pending&priority=high&limit=20');
     expect(result.current.data?.items[0]?.title).toBe('Job');
+  });
+
+  it('lists all work orders through the admin endpoint when mode is all', async () => {
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [wo], nextCursor: null });
+    const { result } = renderHook(() => useWorkOrderBoard({}, undefined, 'all'), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(api.get).toHaveBeenCalledWith('/admin/work-orders?limit=20');
   });
 
   it('fetches a single work order only when an id is provided', () => {

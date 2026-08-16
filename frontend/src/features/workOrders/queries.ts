@@ -18,13 +18,6 @@ function queryString(filters: WorkOrderFilters, cursor?: string): string {
   return params.toString();
 }
 
-export function useWorkOrders(filters: WorkOrderFilters, cursor?: string) {
-  return useQuery({
-    queryKey: ['work-orders', filters, cursor ?? null],
-    queryFn: () => api.get<CursorPage<WorkOrderPublic>>(`/work-orders?${queryString(filters, cursor)}`),
-  });
-}
-
 export type BoardMode = 'own' | 'all';
 
 export function useWorkOrderBoard(filters: WorkOrderFilters, cursor: string | undefined, mode: BoardMode) {
@@ -34,6 +27,7 @@ export function useWorkOrderBoard(filters: WorkOrderFilters, cursor: string | un
       const path = mode === 'all' ? '/admin/work-orders' : '/work-orders';
       return api.get<CursorPage<WorkOrderPublic>>(`${path}?${queryString(filters, cursor)}`);
     },
+    placeholderData: (prev) => prev,
   });
 }
 
@@ -50,7 +44,7 @@ export function useCreateWorkOrder() {
   return useMutation({
     mutationFn: (input: { title: string; description?: string | null; priority?: WorkOrderPriority; status?: WorkOrderStatus }) =>
       api.post<WorkOrderPublic>('/work-orders', input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['work-orders'] }),
+    onSuccess: () => invalidateBoards(qc),
   });
 }
 
@@ -65,7 +59,7 @@ export function useUpdateWorkOrder(id: string) {
       version: number;
     }) => api.patch<WorkOrderPublic>(`/work-orders/${id}`, input),
     onSuccess: (wo) => {
-      qc.invalidateQueries({ queryKey: ['work-orders'] });
+      invalidateBoards(qc);
       qc.setQueryData(['work-orders', 'detail', id], wo);
     },
   });
@@ -76,7 +70,13 @@ export function useDeleteWorkOrder(id: string) {
   return useMutation({
     mutationFn: (version: number) => api.delete<void>(`/work-orders/${id}`, { version }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['work-orders'] });
+      invalidateBoards(qc);
+      qc.removeQueries({ queryKey: ['work-orders', 'detail', id] });
     },
   });
+}
+
+export function invalidateBoards(qc: ReturnType<typeof useQueryClient>): void {
+  qc.invalidateQueries({ queryKey: ['board'] });
+  qc.invalidateQueries({ queryKey: ['admin', 'work-orders'] });
 }

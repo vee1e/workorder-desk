@@ -26,6 +26,18 @@ export function useAdminWorkOrders(filters: WorkOrderFilters, cursor?: string) {
       if (cursor) params.set('cursor', cursor);
       return api.get<CursorPage<WorkOrderPublic>>(`/admin/work-orders?${params.toString()}`);
     },
+    placeholderData: (prev) => prev,
+  });
+}
+
+function patchUserInCache(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: (u: UserAdmin) => UserAdmin,
+): void {
+  qc.setQueriesData<OffsetPage<UserAdmin>>({ queryKey: ['admin', 'users'] }, (old) => {
+    if (!old) return old;
+    return { ...old, items: old.items.map((u) => (u.id === id ? patch(u) : u)) };
   });
 }
 
@@ -33,7 +45,18 @@ export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, role }: { id: string; role: Role }) => api.patch<UserAdmin>(`/admin/users/${id}/role`, { role }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+    onMutate: async ({ id, role }) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'users'] });
+      const previous = qc.getQueriesData({ queryKey: ['admin', 'users'] });
+      patchUserInCache(qc, id, (u) => ({ ...u, role }));
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      for (const [key, data] of ctx?.previous ?? []) {
+        qc.setQueryData(key, data);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
   });
 }
 
@@ -42,7 +65,18 @@ export function useUpdateStatus() {
   return useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.patch<UserAdmin>(`/admin/users/${id}/status`, { isActive }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+    onMutate: async ({ id, isActive }) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'users'] });
+      const previous = qc.getQueriesData({ queryKey: ['admin', 'users'] });
+      patchUserInCache(qc, id, (u) => ({ ...u, isActive }));
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      for (const [key, data] of ctx?.previous ?? []) {
+        qc.setQueryData(key, data);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
   });
 }
 
