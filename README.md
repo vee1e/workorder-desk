@@ -67,6 +67,13 @@ npm run build
 
 CI runs these checks on every push. CI also runs coverage gates.
 
+## Production notes
+
+- The demo accounts are public and shown on the login page. Change the admin password before you use the app in public.
+- Render's free tier sleeps after about 15 minutes without traffic. The first request then takes 30 to 60 seconds to start. Use a paid plan or a warm-up ping for production.
+- Password reset emails use Resend. Set `RESEND_API_KEY` and verify a sender domain before real users sign up.
+- Work-order search uses a case-insensitive regex. It is correct but does a full scan. It is fine at starter scale.
+
 ## Project structure
 
 - `backend`: the Express API. It uses a layered architecture.
