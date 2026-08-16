@@ -8,7 +8,10 @@ const boardTickets = [
   { title: 'Seal window draft — Unit 3A', no: '№ 4B81D', priority: 'low' as const, status: 'done' as const },
 ];
 
+import { usePageTitle } from '../hooks/usePageTitle';
+
 export function LandingPage() {
+  usePageTitle('');
   return (
     <div className="flex min-h-screen flex-col bg-ink-950 text-ice">
       <header className="border-b border-line bg-ink-900/70">

@@ -9,7 +9,10 @@ import { Button } from '../../components/primitives/Spinner';
 import { Card, CardBody, CardHeader } from '../../components/primitives/Card';
 import { Field, Input } from '../../components/primitives/Input';
 
+import { usePageTitle } from '../../hooks/usePageTitle';
+
 export function ProfilePage() {
+  usePageTitle('Profile');
   const { data: user } = useMe();
   const [name, setName] = useState(user?.name ?? '');
   const [nameError, setNameError] = useState<string | null>(null);

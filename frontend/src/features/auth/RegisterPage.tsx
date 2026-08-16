@@ -1,3 +1,4 @@
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerSchema } from '@workorders/shared';
@@ -9,6 +10,7 @@ import { Card, CardBody, CardHeader } from '../../components/primitives/Card';
 import { ErrorBanner } from '../../components/primitives/Feedback';
 
 export function RegisterPage() {
+  usePageTitle('Create account');
   const register = useRegister();
   const navigate = useNavigate();
   const [values, setValues] = useState({ name: '', email: '', password: '' });
@@ -37,7 +39,7 @@ export function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <Card className="w-full max-w-md">
-        <CardHeader title="Create account" description="Join the work order desk." />
+        <CardHeader as="h1" title="Create account" description="Join the work order desk." />
         <CardBody>
           {formError && <ErrorBanner className="mb-4" message={formError} />}
           <form onSubmit={onSubmit} className="space-y-4" noValidate>

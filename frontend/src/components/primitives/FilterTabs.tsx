@@ -15,7 +15,7 @@ export function FilterTabs({
   onChange: (value: string) => void;
 }) {
   return (
-    <div role="group" className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-ink-900 p-1">
+    <div role="group" aria-label="Filter by status" className="inline-flex flex-wrap gap-1 rounded-lg border border-line bg-ink-900 p-1">
       {options.map((o) => (
         <button
           key={o.value}

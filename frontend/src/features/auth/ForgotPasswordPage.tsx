@@ -1,3 +1,4 @@
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPasswordSchema } from '@workorders/shared';
@@ -10,6 +11,7 @@ import { Card, CardBody, CardHeader } from '../../components/primitives/Card';
 import { ErrorBanner } from '../../components/primitives/Feedback';
 
 export function ForgotPasswordPage() {
+  usePageTitle('Reset your password');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -37,7 +39,7 @@ export function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <Card className="w-full max-w-md">
-        <CardHeader title="Reset your password" description="We will email you a reset link if the account exists." />
+        <CardHeader as="h1" title="Reset your password" description="We will email you a reset link if the account exists." />
         <CardBody>
           {submitted ? (
             <p className="text-sm text-steel-300">

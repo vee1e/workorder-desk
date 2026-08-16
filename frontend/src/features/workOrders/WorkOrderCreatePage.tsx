@@ -5,7 +5,10 @@ import { PageHeader } from '../../components/primitives/Feedback';
 import { Card, CardBody } from '../../components/primitives/Card';
 import { messageFromError } from '../../lib/errors';
 
+import { usePageTitle } from '../../hooks/usePageTitle';
+
 export function WorkOrderCreatePage() {
+  usePageTitle('New work order');
   const create = useCreateWorkOrder();
   const navigate = useNavigate();
 

@@ -1,3 +1,4 @@
+import { usePageTitle } from '../../hooks/usePageTitle';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPasswordSchema } from '@workorders/shared';
@@ -11,6 +12,7 @@ import { Card, CardBody, CardHeader } from '../../components/primitives/Card';
 import { ErrorBanner } from '../../components/primitives/Feedback';
 
 export function ResetPasswordPage() {
+  usePageTitle('Choose a new password');
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
   const [password, setPassword] = useState('');
@@ -42,7 +44,7 @@ export function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <Card className="w-full max-w-md">
-        <CardHeader title="Choose a new password" />
+        <CardHeader as="h1" title="Choose a new password" />
         <CardBody>
           {!token && <ErrorBanner message="This reset link is missing its token. Request a new one." />}
           {token && (

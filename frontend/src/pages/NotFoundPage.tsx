@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/primitives/Spinner';
 
+import { usePageTitle } from '../hooks/usePageTitle';
+
 export function NotFoundPage() {
+  usePageTitle('Page not found');
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-ink-950 px-4 text-center">
       <p className="font-display text-8xl font-bold uppercase leading-none text-steel-600">404</p>
