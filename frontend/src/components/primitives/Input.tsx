@@ -1,4 +1,5 @@
-import type { InputHTMLAttributes, SelectHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactElement, SelectHTMLAttributes } from 'react';
+import { cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/utils';
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
@@ -38,13 +39,25 @@ export function Field({
   error?: string;
   children: React.ReactNode;
 }) {
+  const errorId = htmlFor ? `${htmlFor}-error` : undefined;
+  let control = children;
+  if (isValidElement(children)) {
+    control = cloneElement(children as ReactElement<{ 'aria-invalid'?: boolean; 'aria-describedby'?: string }>, {
+      'aria-invalid': error ? true : undefined,
+      'aria-describedby': error ? errorId : undefined,
+    });
+  }
   return (
     <div className="space-y-1">
       <label htmlFor={htmlFor} className="block text-xs font-semibold uppercase tracking-wide text-steel-300">
         {label}
       </label>
-      {children}
-      {error && <p className="text-sm text-signal-400">{error}</p>}
+      {control}
+      {error && (
+        <p id={errorId} role="alert" className="text-sm text-signal-400">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
