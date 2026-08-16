@@ -1,0 +1,9 @@
+# Keep the Docker build context (repo root) lean. Patterns apply relative to
+# the build context root and match at any depth.
+node_modules
+dist
+coverage
+.git
+.env
+.env.*
+*.log

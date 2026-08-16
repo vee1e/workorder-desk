@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-ink-950 text-ice antialiased;
+  }
+  body {
+    @apply bg-ink-950 text-ice;
+  }
+  ::selection {
+    @apply bg-hi-400 text-ink-950;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-hi-400;
+  }
+}
+
+@layer components {
+  .hazard-bar {
+    background-image: repeating-linear-gradient(
+      45deg,
+      #ff5c33 0 8px,
+      #121317 8px 16px
+    );
+  }
+  .hazard-chip {
+    @apply inline-block h-2 w-2 rounded-[2px];
+    background-image: repeating-linear-gradient(45deg, #ff5c33 0 3px, #121317 3px 6px);
+  }
+  .ticket-rule {
+    background-image: repeating-linear-gradient(
+      90deg,
+      #333947 0 6px,
+      transparent 6px 12px
+    );
+  }
+}
+
+/* Scrollbars, tuned for the dark console */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2c313d transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2c313d;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
