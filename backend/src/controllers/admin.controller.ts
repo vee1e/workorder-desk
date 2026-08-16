@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { CursorQuery, OffsetQuery, UpdateRoleInput, UpdateStatusInput } from '@workorders/shared';
 import { adminService, type UserListQuery } from '../services/admin.service.js';
+import { actorOf, paramOf } from '../utils/request.js';
 
 export const adminController = {
   async listUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -15,7 +16,7 @@ export const adminController = {
 
   async updateRole(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await adminService.updateRole(req.actor!.id, req.params.id!, (req.body as UpdateRoleInput).role);
+      const data = await adminService.updateRole(actorOf(req).id, paramOf(req, 'id'), (req.body as UpdateRoleInput).role);
       res.status(200).json({ success: true, data });
     } catch (err) {
       next(err);
@@ -24,7 +25,7 @@ export const adminController = {
 
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await adminService.updateStatus(req.actor!.id, req.params.id!, (req.body as UpdateStatusInput).isActive);
+      const data = await adminService.updateStatus(actorOf(req).id, paramOf(req, 'id'), (req.body as UpdateStatusInput).isActive);
       res.status(200).json({ success: true, data });
     } catch (err) {
       next(err);
