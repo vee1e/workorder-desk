@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: workorders-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build -w @workorders/shared && npm run build -w backend
+    startCommand: node backend/dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      - key: CORS_ORIGIN
+        value: https://workorders-desk.vercel.app
+      - key: APP_URL
+        value: https://workorders-desk.vercel.app
+      # sync: false → values are entered in the Render dashboard at create time
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: COOKIE_SECRET
+        sync: false
