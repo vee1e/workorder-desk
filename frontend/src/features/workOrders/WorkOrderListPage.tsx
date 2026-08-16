@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { WorkOrderPriority, WorkOrderStatus } from '@workorders/shared';
 import { useWorkOrderBoard, type WorkOrderFilters } from './queries';
 import { useMe } from '../../hooks/useAuth';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PageHeader, EmptyState, ErrorBanner } from '../../components/primitives/Feedback';
 import { Button, FullPageSpinner } from '../../components/primitives/Spinner';
 import { FilterTabs } from '../../components/primitives/FilterTabs';
@@ -11,13 +12,23 @@ import { CursorPagination } from '../../components/primitives/CursorPagination';
 import { TicketRow } from '../../components/TicketRow';
 import { messageFromError } from '../../lib/errors';
 
+import { usePageTitle } from '../../hooks/usePageTitle';
+
 export function WorkOrderListPage() {
+  usePageTitle('Work orders');
   const { data: me } = useMe();
   const isViewer = me?.role === 'viewer';
   const [filters, setFilters] = useState<WorkOrderFilters>({});
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevStack, setPrevStack] = useState<string[]>([]);
   const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
+
+  useEffect(() => {
+    setFilters((f) => ({ ...f, search: debouncedSearch.trim() || undefined }));
+    setCursor(undefined);
+    setPrevStack([]);
+  }, [debouncedSearch]);
 
   const { data, isPending, isError, error } = useWorkOrderBoard(filters, cursor, isViewer ? 'all' : 'own');
 
@@ -83,9 +94,6 @@ export function WorkOrderListPage() {
             placeholder="Search by title"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') applyFilters({ search: searchInput.trim() || undefined });
-            }}
           />
         </div>
       </div>

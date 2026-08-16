@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { WorkOrderPriority, WorkOrderStatus } from '@workorders/shared';
 import { useAdminWorkOrders } from './queries';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PageHeader, EmptyState, ErrorBanner } from '../../components/primitives/Feedback';
 import { FullPageSpinner } from '../../components/primitives/Spinner';
 import { FilterTabs } from '../../components/primitives/FilterTabs';
@@ -9,15 +10,24 @@ import { CursorPagination } from '../../components/primitives/CursorPagination';
 import { TicketRow } from '../../components/TicketRow';
 import { messageFromError } from '../../lib/errors';
 
+import { usePageTitle } from '../../hooks/usePageTitle';
+
 export function AdminWorkOrdersPage() {
+  usePageTitle('All work orders');
   const [status, setStatus] = useState<WorkOrderStatus | ''>('');
   const [priority, setPriority] = useState<WorkOrderPriority | ''>('');
   const [search, setSearch] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevStack, setPrevStack] = useState<string[]>([]);
+  const debouncedSearch = useDebouncedValue(search);
+
+  useEffect(() => {
+    setCursor(undefined);
+    setPrevStack([]);
+  }, [debouncedSearch]);
 
   const { data, isPending, isError, error } = useAdminWorkOrders(
-    { status: status || undefined, priority: priority || undefined, search: search || undefined },
+    { status: status || undefined, priority: priority || undefined, search: debouncedSearch.trim() || undefined },
     cursor,
   );
 
@@ -67,10 +77,7 @@ export function AdminWorkOrdersPage() {
             className="sm:w-52"
             placeholder="Search by title"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              reset();
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>

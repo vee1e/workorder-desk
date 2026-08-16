@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Role } from '@workorders/shared';
 import { useAdminUsers, useUpdateRole, useUpdateStatus } from './queries';
 import { useMe } from '../../hooks/useAuth';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PageHeader, EmptyState, ErrorBanner } from '../../components/primitives/Feedback';
 import { FullPageSpinner } from '../../components/primitives/Spinner';
 import { Card, CardBody } from '../../components/primitives/Card';
@@ -9,13 +10,26 @@ import { Input, Select } from '../../components/primitives/Input';
 import { formatDate } from '../../lib/utils';
 import { messageFromError } from '../../lib/errors';
 
+import { usePageTitle } from '../../hooks/usePageTitle';
+
 export function AdminUsersPage() {
+  usePageTitle('Team');
   const { data: me } = useMe();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<Role | ''>('');
+  const debouncedSearch = useDebouncedValue(search);
 
-  const { data, isPending, isError, error } = useAdminUsers(page, 20, role || undefined, search || undefined);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, role]);
+
+  const { data, isPending, isError, error } = useAdminUsers(
+    page,
+    20,
+    role || undefined,
+    debouncedSearch.trim() || undefined,
+  );
   const updateRole = useUpdateRole();
   const updateStatus = useUpdateStatus();
 
@@ -28,23 +42,22 @@ export function AdminUsersPage() {
       <Card className="mb-5">
         <CardBody className="grid gap-4 sm:grid-cols-2">
           <Input
+            aria-label="Search crew by name or email"
             placeholder="Search by name or email"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
           <Select
+            aria-label="Filter by role"
             value={role}
             onChange={(e) => {
               setRole(e.target.value as Role | '');
-              setPage(1);
             }}
           >
             <option value="">All roles</option>
             <option value="user">Technician</option>
             <option value="admin">Dispatcher</option>
+            <option value="viewer">Viewer</option>
           </Select>
         </CardBody>
       </Card>
