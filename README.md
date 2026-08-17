@@ -1,8 +1,12 @@
-# Work Order Desk
+<div align="center">
+
+### Work Order Desk
 
 [![codecov](https://codecov.io/gh/vee1e/workorder-desk/branch/master/graph/badge.svg)](https://codecov.io/gh/vee1e/workorder-desk)
 
-Work Order Desk is a web application for field service teams. A technician logs a job, tracks it, and closes it. A dispatcher sees every job on the team. The application is built with MongoDB, Express, React, and Node.js.
+</div>
+
+A web application for field service teams. A technician logs a job, tracks it, and closes it. A dispatcher sees every job on the team. The application is built with MongoDB, Express, React, and Node.js.
 
 A work order is a job to do in the field. Each work order has a title, a description, a status, and a priority. The status is `pending`, `in_progress`, or `done`. The priority is `low`, `medium`, or `high`.
 
