@@ -67,8 +67,8 @@ export function CopilotPanel({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <div
       className={cn(
-        'fixed inset-0 z-40 lg:left-auto',
-        open ? 'pointer-events-auto' : 'pointer-events-none',
+        'fixed inset-0 z-40',
+        open ? 'pointer-events-auto' : 'pointer-events-none invisible',
       )}
       aria-hidden={!open}
     >
