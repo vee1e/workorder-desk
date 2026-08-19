@@ -1,7 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CursorPage, Metrics, OffsetPage, Role, UserAdmin, WorkOrderPublic } from '@workorders/shared';
+import type {
+  AgentConfig,
+  AgentRun,
+  AgentToolCall,
+  CursorPage,
+  Metrics,
+  OffsetPage,
+  Role,
+  TriageMode,
+  UserAdmin,
+  WorkOrderPriority,
+  WorkOrderPublic,
+} from '@workorders/shared';
 import { api } from '../../api/client';
 import type { WorkOrderFilters } from '../workOrders/queries';
+
+export interface AgentMessage {
+  runId: string;
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  toolCallId?: string;
+  name?: string;
+}
 
 export function useAdminUsers(page: number, limit: number, role?: Role, search?: string) {
   return useQuery({
@@ -41,6 +61,8 @@ function patchUserInCache(
   });
 }
 
+export { patchUserInCache };
+
 export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
@@ -77,6 +99,83 @@ export function useUpdateStatus() {
       }
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  });
+}
+
+export function useToggleAi() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, aiEnabled }: { id: string; aiEnabled: boolean }) =>
+      api.patch<UserAdmin>(`/admin/users/${id}/ai`, { aiEnabled }),
+    onMutate: async ({ id, aiEnabled }) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'users'] });
+      const previous = qc.getQueriesData({ queryKey: ['admin', 'users'] });
+      patchUserInCache(qc, id, (u) => ({ ...u, aiEnabled }));
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      for (const [key, data] of ctx?.previous ?? []) {
+        qc.setQueryData(key, data);
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
+  });
+}
+
+export function useAgentConfig() {
+  return useQuery({
+    queryKey: ['admin', 'agents', 'triage', 'config'],
+    queryFn: () => api.get<AgentConfig>('/admin/agents/triage'),
+  });
+}
+
+export function useUpdateAgentConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      mode?: TriageMode;
+      dailyActionCap?: number;
+      flagThreshold?: WorkOrderPriority;
+      workingHours?: string;
+    }) => api.patch<AgentConfig>('/admin/agents/triage/config', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'agents'] }),
+  });
+}
+
+export function useDisableAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ enabled: false }>('/admin/agents/disable'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'agents'] }),
+  });
+}
+
+export function useManualTriageRun() {
+  return useMutation({
+    mutationFn: (workOrderId?: string) =>
+      api.post<{ outcome: 'done' | 'skipped' | 'failed' | 'retry' }>(
+        '/admin/agents/triage/run',
+        workOrderId ? { workOrderId } : {},
+      ),
+  });
+}
+
+export function useAgentRuns(page: number, limit: number) {
+  return useQuery({
+    queryKey: ['admin', 'agents', 'runs', { page, limit }],
+    queryFn: () => api.get<OffsetPage<AgentRun>>(`/admin/agents/runs?page=${page}&limit=${limit}`),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useAgentRunDetail(id: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'agents', 'runs', 'detail', id],
+    queryFn: () =>
+      api.get<{ run: AgentRun; messages: AgentMessage[]; toolCalls: AgentToolCall[] }>(
+        `/admin/agents/runs/${id}`,
+      ),
+    enabled: Boolean(id),
   });
 }
 

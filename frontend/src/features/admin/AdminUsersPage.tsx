@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Role } from '@workorders/shared';
-import { useAdminUsers, useUpdateRole, useUpdateStatus } from './queries';
+import { useAdminUsers, useToggleAi, useUpdateRole, useUpdateStatus } from './queries';
 import { useMe } from '../../hooks/useAuth';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PageHeader, EmptyState, ErrorBanner } from '../../components/primitives/Feedback';
@@ -32,6 +32,7 @@ export function AdminUsersPage() {
   );
   const updateRole = useUpdateRole();
   const updateStatus = useUpdateStatus();
+  const toggleAi = useToggleAi();
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -77,6 +78,7 @@ export function AdminUsersPage() {
                   <th className="px-5 py-3 font-medium">Email</th>
                   <th className="px-5 py-3 font-medium">Role</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">AI</th>
                   <th className="px-5 py-3 font-medium">Last login</th>
                 </tr>
               </thead>
@@ -125,6 +127,33 @@ export function AdminUsersPage() {
                         >
                           {u.isActive ? 'Active' : 'Disabled'}
                         </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={u.aiEnabled}
+                          aria-label={`AI access for ${u.name}`}
+                          disabled={isSelf}
+                          onClick={async () => {
+                            try {
+                              await toggleAi.mutateAsync({ id: u.id, aiEnabled: !u.aiEnabled });
+                            } catch (err) {
+                              alert(messageFromError(err, 'AI toggle failed'));
+                            }
+                          }}
+                          className={
+                            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ' +
+                            (u.aiEnabled ? 'bg-hi-400' : 'bg-ink-600')
+                          }
+                        >
+                          <span
+                            className={
+                              'inline-block h-4 w-4 rounded-full bg-ink-950 transition-transform ' +
+                              (u.aiEnabled ? 'translate-x-4' : 'translate-x-0.5')
+                            }
+                          />
+                        </button>
                       </td>
                       <td className="px-5 py-3 text-steel-300">
                         <div className="flex items-center gap-3">
