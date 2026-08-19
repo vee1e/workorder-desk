@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { TriageMode, WorkOrderPriority } from '@workorders/shared';
 import { useAgentConfig, useDisableAgent, useManualTriageRun, useUpdateAgentConfig } from './queries';
 import { usePageTitle } from '../../hooks/usePageTitle';
@@ -10,6 +11,7 @@ import { messageFromError } from '../../lib/errors';
 
 export function AgentSettingsPage() {
   usePageTitle('Agents');
+  const navigate = useNavigate();
   const { data: config, isPending, isError, error } = useAgentConfig();
   const updateConfig = useUpdateAgentConfig();
   const disableAgent = useDisableAgent();
@@ -73,7 +75,11 @@ export function AgentSettingsPage() {
   async function handleRun() {
     setFeedback(null);
     try {
-      const { outcome } = await manualRun.mutateAsync(workOrderId.trim() || undefined);
+      const { outcome, runId } = await manualRun.mutateAsync(workOrderId.trim() || undefined);
+      if (runId) {
+        navigate(`/app/admin/agents/runs?run=${runId}`);
+        return;
+      }
       setFeedback({ kind: 'ok', text: `Triage run finished: ${outcome}.` });
     } catch (err) {
       setFeedback({ kind: 'error', text: messageFromError(err, 'Triage run failed') });

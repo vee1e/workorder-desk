@@ -153,7 +153,7 @@ export function useDisableAgent() {
 export function useManualTriageRun() {
   return useMutation({
     mutationFn: (workOrderId?: string) =>
-      api.post<{ outcome: 'done' | 'skipped' | 'failed' | 'retry' }>(
+      api.post<{ outcome: 'done' | 'skipped' | 'failed' | 'retry'; runId: string | null }>(
         '/admin/agents/triage/run',
         workOrderId ? { workOrderId } : {},
       ),

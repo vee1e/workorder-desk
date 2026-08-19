@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { AgentRun, AgentRunStatus } from '@workorders/shared';
 import { useAgentRunDetail, useAgentRuns } from './queries';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { PageHeader, EmptyState, ErrorBanner } from '../../components/primitives/Feedback';
-import { FullPageSpinner } from '../../components/primitives/Spinner';
+import { FullPageSpinner, Spinner } from '../../components/primitives/Spinner';
 import { Card } from '../../components/primitives/Card';
 import { formatDate } from '../../lib/utils';
 import { messageFromError } from '../../lib/errors';
@@ -42,7 +43,13 @@ export function AgentRunsPage() {
   const limit = 10;
   const { data, isPending, isError, error } = useAgentRuns(page, limit);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   const detail = useAgentRunDetail(selectedId);
+
+  useEffect(() => {
+    const runParam = searchParams.get('run');
+    if (runParam) setSelectedId(runParam);
+  }, [searchParams]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -84,7 +91,7 @@ export function AgentRunsPage() {
                   <FragmentRow key={run.id} run={run} selected={selectedId === run.id} onToggle={() => toggleRow(run)}>
                     {selectedId === run.id && detail.isPending && (
                       <div className="flex items-center gap-2 text-sm text-steel-400">
-                        <FullPageSpinner />
+                        <Spinner size="sm" />
                         Loading run detail…
                       </div>
                     )}
@@ -172,6 +179,19 @@ function FragmentRow({
   );
 }
 
+function isJsonLike(content: string): boolean {
+  const trimmed = content.trim();
+  return trimmed.startsWith('{') || trimmed.startsWith('[');
+}
+
+function formatJson(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
+}
+
 function RunDetail({
   messages,
   toolCalls,
@@ -186,13 +206,21 @@ function RunDetail({
     createdAt: string;
   }[];
 }) {
+  const visibleMessages = messages.filter((m) => m.role !== 'system');
   return (
     <div className="space-y-4">
       <div>
-        <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-steel-500">Messages</p>
-        {messages.length === 0 && <p className="text-sm text-steel-400">No messages recorded.</p>}
+        <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-steel-500">
+          Messages
+          {messages.some((m) => m.role === 'system') && (
+            <span className="ml-2 normal-case tracking-normal text-steel-600">
+              (system prompt omitted)
+            </span>
+          )}
+        </p>
+        {visibleMessages.length === 0 && <p className="text-sm text-steel-400">No messages recorded.</p>}
         <div className="space-y-2">
-          {messages.map((m, i) => (
+          {visibleMessages.map((m, i) => (
             <div key={i} className="rounded-md border border-line bg-ink-900 px-3 py-2">
               <div className="mb-1 flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-hi-300">
@@ -204,7 +232,11 @@ function RunDetail({
                   </span>
                 )}
               </div>
-              {m.role === 'user' || m.role === 'assistant' ? (
+              {isJsonLike(m.content) ? (
+                <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-ink-800 px-2 py-1 font-mono text-[12px] text-steel-300">
+                  {formatJson(m.content)}
+                </pre>
+              ) : m.role === 'user' || m.role === 'assistant' ? (
                 <Markdown text={m.content} />
               ) : (
                 <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-steel-300">
@@ -231,14 +263,24 @@ function RunDetail({
                 </span>
               </div>
               {tc.args !== undefined && (
-                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded bg-ink-800 px-2 py-1 font-mono text-[12px] text-steel-300">
-                  {JSON.stringify(tc.args, null, 2)}
-                </pre>
+                <div className="mt-1">
+                  <p className="mb-0.5 font-mono text-[10px] uppercase tracking-wider text-steel-500">
+                    args
+                  </p>
+                  <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-ink-800 px-2 py-1 font-mono text-[12px] text-steel-300">
+                    {JSON.stringify(tc.args, null, 2)}
+                  </pre>
+                </div>
               )}
               {tc.result !== undefined && (
-                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded bg-ink-800 px-2 py-1 font-mono text-[12px] text-go-400">
-                  {JSON.stringify(tc.result, null, 2)}
-                </pre>
+                <div className="mt-1">
+                  <p className="mb-0.5 font-mono text-[10px] uppercase tracking-wider text-steel-500">
+                    result
+                  </p>
+                  <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-ink-800 px-2 py-1 font-mono text-[12px] text-go-400">
+                    {JSON.stringify(tc.result, null, 2)}
+                  </pre>
+                </div>
               )}
             </div>
           ))}
