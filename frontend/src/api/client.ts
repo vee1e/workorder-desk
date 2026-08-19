@@ -66,11 +66,13 @@ async function refreshTokens(): Promise<boolean> {
 
 function redirectToLogin(): void {
   if (redirecting) return;
+  if (typeof window === 'undefined') return;
+  // Already on the login page: redirecting would reload the page into an
+  // infinite loop. Let the guest route render the form instead.
+  if (typeof window.location.pathname === 'string' && window.location.pathname.startsWith('/login')) return;
   redirecting = true;
-  if (typeof window !== 'undefined') {
-    saveRedirect(window.location.pathname + window.location.search);
-    window.location.assign('/login');
-  }
+  saveRedirect(window.location.pathname + window.location.search);
+  window.location.assign('/login');
 }
 
 async function request<T>(path: string, init: RequestInit, retried = false): Promise<T> {

@@ -82,4 +82,16 @@ describe('api client', () => {
     await expect(api.get('/users/me')).rejects.toBeInstanceOf(ApiError);
     expect(assign).toHaveBeenCalledWith('/login');
   });
+
+  it('does not redirect (reload) when already on /login', async () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: { assign, pathname: '/login' },
+    });
+    mockFetchQueue(mockResponse(401, errEnvelope), mockResponse(401, errEnvelope));
+    await expect(api.get('/users/me')).rejects.toBeInstanceOf(ApiError);
+    expect(assign).not.toHaveBeenCalled();
+  });
 });
