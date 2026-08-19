@@ -72,6 +72,48 @@ services:
       mongo:
         condition: service_healthy
 
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    image: workorders-worker:dev
+    restart: unless-stopped
+    init: true
+    working_dir: /app/backend
+    # Rebuild packages/shared dist/ on change, then run tsx watch on the
+    # autonomous triage worker (separate process from the API, SPEC §7).
+    command: >
+      sh -c "npx tsc -p ../packages/shared/tsconfig.json --watch --preserveWatchOutput &
+             exec npx tsx watch src/worker.ts"
+    environment:
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongo:27017/workorders
+      # ── dev only: long random-looking values so backend validation passes.
+      #    These are NOT secrets; production reads real values from .env.
+      JWT_SECRET: dev-only-e7c1a9f34d5b8e2c0a6f9d1b4c7e3a85
+      COOKIE_SECRET: dev-only-b2f6a4d9c8e1b3f7a5c0d2e4f8b6a1c7
+      CORS_ORIGIN: http://localhost:5173
+      APP_URL: http://localhost:5173
+      TRUST_PROXY_HOPS: "0"
+      DEBUG_ERRORS: "true"
+      LOG_LEVEL: debug
+      # The AI_* keys (AI_ENABLED, AI_BASE_URL, AI_API_KEY, ...) are
+      # intentionally NOT hardcoded here. In real deployments they come from
+      # the API/worker environment; for local containerized dev, uncomment and
+      # set them as needed (AI_ENABLED=true requires a real non-private
+      # https AI_BASE_URL + AI_API_KEY). Non-container runs pick them up from
+      # the repo-root .env via backend env.ts.
+      # AI_ENABLED: "false"
+      # AI_BASE_URL: https://api.openai.com/v1
+      # AI_API_KEY: sk-...
+    volumes:
+      - ./backend/src:/app/backend/src
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      mongo:
+        condition: service_healthy
+
   vite:
     build:
       context: .
