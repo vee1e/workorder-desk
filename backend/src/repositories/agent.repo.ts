@@ -175,6 +175,18 @@ export const agentRepo = {
     await AgentToolCall.updateOne({ _id: id, 'approval.status': 'pending' }, { $set: { 'approval.status': 'expired' } });
   },
 
+  async setToolCallOutcome(
+    id: string,
+    outcome: AgentToolOutcome,
+    extra?: { executedVersion?: number; result?: unknown; approvalStatus?: AgentApprovalStatus },
+  ): Promise<void> {
+    const set: Record<string, unknown> = { outcome };
+    if (extra?.executedVersion !== undefined) set.executedVersion = extra.executedVersion;
+    if (extra?.result !== undefined) set.result = extra.result;
+    if (extra?.approvalStatus !== undefined) set['approval.status'] = extra.approvalStatus;
+    await AgentToolCall.updateOne({ _id: id }, { $set: set });
+  },
+
   async expireApprovalsForRuns(runIds: string[]): Promise<void> {
     await AgentToolCall.updateMany(
       { runId: { $in: runIds }, 'approval.status': 'pending' },
