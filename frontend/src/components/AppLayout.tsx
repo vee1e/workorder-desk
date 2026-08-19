@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useLogout, useMe } from '../hooks/useAuth';
 import type { Role } from '@workorders/shared';
 import { cn } from '../lib/utils';
+import { CopilotPanel } from '../features/copilot/CopilotPanel';
 
 function Mark() {
   return (
@@ -17,12 +19,15 @@ const navItems = (role: Role) => [
   { to: '/app/profile', label: 'Profile', end: false, always: true },
   { to: '/app/admin', label: 'Team', end: true, always: role === 'admin' },
   { to: '/app/admin/work-orders', label: 'All Tickets', end: false, always: role === 'admin' },
+  { to: '/app/admin/agents', label: 'Agents', end: false, always: role === 'admin' },
+  { to: '/app/admin/agents/runs', label: 'Agent Runs', end: false, always: role === 'admin' },
 ];
 
 export function AppLayout() {
   const { data: user } = useMe();
   const logout = useLogout();
   const navigate = useNavigate();
+  const [copilotOpen, setCopilotOpen] = useState(false);
   const items = navItems(user?.role ?? 'user').filter((i) => i.always);
 
   async function handleLogout() {
@@ -103,6 +108,18 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setCopilotOpen(true)}
+        aria-label="Open Copilot"
+        className="fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-full border border-line bg-ink-800 px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-ice shadow-lg transition-colors hover:border-hi-400/50 hover:text-hi-300"
+      >
+        <span aria-hidden className="hazard-chip" />
+        Copilot
+      </button>
+
+      <CopilotPanel open={copilotOpen} onClose={() => setCopilotOpen(false)} />
     </div>
   );
 }

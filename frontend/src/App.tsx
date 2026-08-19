@@ -14,6 +14,8 @@ import { WorkOrderDetailPage } from './features/workOrders/WorkOrderDetailPage';
 import { WorkOrderCreatePage } from './features/workOrders/WorkOrderCreatePage';
 import { AdminUsersPage } from './features/admin/AdminUsersPage';
 import { AdminWorkOrdersPage } from './features/admin/AdminWorkOrdersPage';
+import { AgentSettingsPage } from './features/admin/AgentSettingsPage';
+import { AgentRunsPage } from './features/admin/AgentRunsPage';
 import { ProfilePage } from './features/profile/ProfilePage';
 
 export function App() {
@@ -42,6 +44,8 @@ export function App() {
         <Route element={<AppLayout />}>
           <Route path="/app/admin" element={<AdminUsersPage />} />
           <Route path="/app/admin/work-orders" element={<AdminWorkOrdersPage />} />
+          <Route path="/app/admin/agents" element={<AgentSettingsPage />} />
+          <Route path="/app/admin/agents/runs" element={<AgentRunsPage />} />
         </Route>
       </Route>
 
