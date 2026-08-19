@@ -197,14 +197,26 @@ function buildUserContent(wo: WorkOrderDoc, lastError: string | null): string {
 
 type ProposalParse = { ok: true; data: TriageProposal } | { ok: false; message: string };
 
+function extractJsonBlock(text: string): string | null {
+  const trimmed = text.trim();
+  const fenced = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  for (const candidate of [fenced, trimmed]) {
+    const start = candidate.search(/[{[]/);
+    if (start === -1) continue;
+    const open = candidate[start] as '{' | '[';
+    const close = open === '{' ? '}' : ']';
+    const end = candidate.lastIndexOf(close);
+    if (end > start) return candidate.slice(start, end + 1);
+  }
+  return null;
+}
+
 function parseProposal(content: string): ProposalParse {
-  const cleaned = content
-    .trim()
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```\s*$/, '');
+  const block = extractJsonBlock(content);
+  if (!block) return { ok: false, message: 'the response did not contain a JSON object' };
   let obj: unknown;
   try {
-    obj = JSON.parse(cleaned);
+    obj = JSON.parse(block);
   } catch {
     return { ok: false, message: 'the response was not valid JSON' };
   }

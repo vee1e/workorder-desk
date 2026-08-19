@@ -151,6 +151,18 @@ describe('triage agent', () => {
     expect(providerMock.chatComplete).not.toHaveBeenCalled();
   });
 
+  it('parses a proposal wrapped in prose and code fences', async () => {
+    const { wo } = await makeWorkOrder();
+    providerMock.chatComplete.mockResolvedValue(
+      providerResult({ content: `Sure, here you go:\n\`\`\`json\n${proposal()}\n\`\`\`\nHope that helps!` }),
+    );
+    const outcome = await runTriage(wo.id);
+    expect(outcome.outcome).toBe('done');
+    const suggestions = await TriageSuggestion.find({ workOrderId: wo.id });
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toMatchObject({ suggestedPriority: 'high' });
+  });
+
   it('returns retry when the provider fails transiently and records AI_UNAVAILABLE', async () => {
     const { wo } = await makeWorkOrder();
     providerMock.chatComplete.mockRejectedValue(new providerMock.ProviderError('upstream down', 'network'));
