@@ -12,6 +12,7 @@ export const AI_ENV = {
   AI_ENABLED: 'true',
   AI_BASE_URL: 'https://llm.example.com/v1',
   AI_API_KEY: 'test-key',
+  AI_MODEL: 'gpt-4o-mini',
   AI_RATE_LIMIT_MAX: '100000',
   AI_MAX_STEPS_PER_RUN: '3',
 };
