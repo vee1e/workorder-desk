@@ -47,8 +47,8 @@ export const agentRepo = {
     model: string;
   }): Promise<AgentRunDoc> {
     return AgentRun.create({
-      sessionId: input.sessionId,
-      userId: input.userId,
+      sessionId: input.sessionId || null,
+      userId: input.userId || null,
       mode: input.mode,
       agentName: input.agentName,
       model: input.model,

@@ -4,6 +4,14 @@ import type { AgentApproval, AgentApprovalStatus, AgentToolCall as AgentToolCall
 
 const { Schema, model, models } = mongoose;
 
+const approvalSchema = new Schema<AgentToolCallApprovalDoc>({
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'expired', 'stale'], default: 'pending' },
+  summary: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  decidedBy: { type: String },
+  decidedAt: { type: Date },
+});
+
 export interface AgentToolCallApprovalDoc {
   status: AgentApprovalStatus;
   summary: string;
@@ -44,13 +52,7 @@ const agentToolCallSchema = new Schema<AgentToolCallDoc>(
     stagedVersion: { type: Number },
     executedVersion: { type: Number },
     preImage: { type: Schema.Types.Mixed },
-    approval: {
-      status: { type: String, enum: ['pending', 'approved', 'rejected', 'expired', 'stale'], default: 'pending' },
-      summary: { type: String, required: true },
-      expiresAt: { type: Date, required: true },
-      decidedBy: { type: String },
-      decidedAt: { type: Date },
-    },
+    approval: { type: approvalSchema, default: undefined },
     expiresAt: { type: Date, default: null },
   },
   { timestamps: true },
