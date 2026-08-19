@@ -4,11 +4,16 @@ const TIMEOUT_MS = 60_000;
 const MAX_CONTENT_LENGTH = 1024 * 1024;
 const BAD_STATUS_BODY_LIMIT = 500;
 
-const base = env.AI_BASE_URL!.replace(/\/+$/, '') + '/chat/completions';
-const headers = {
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${env.AI_API_KEY!}`,
-};
+function endpoint(): string {
+  return env.AI_BASE_URL!.replace(/\/+$/, '') + '/chat/completions';
+}
+
+function headers(): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${env.AI_API_KEY!}`,
+  };
+}
 
 export interface ProviderMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -112,9 +117,9 @@ export async function chatComplete(
 ): Promise<ProviderResult> {
   let res: Response;
   try {
-    res = await fetch(base, {
+    res = await fetch(endpoint(), {
       method: 'POST',
-      headers,
+      headers: headers(),
       body: JSON.stringify(buildBody(messages, tools, opts.maxTokens, false)),
       redirect: 'error',
       signal: combinedSignal(opts.signal),
@@ -156,9 +161,9 @@ export async function chatStream(
 ): Promise<ProviderResult> {
   let res: Response;
   try {
-    res = await fetch(base, {
+    res = await fetch(endpoint(), {
       method: 'POST',
-      headers,
+      headers: headers(),
       body: JSON.stringify(buildBody(messages, tools, opts.maxTokens, true)),
       redirect: 'error',
       signal: combinedSignal(opts.signal),
