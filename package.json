@@ -26,7 +26,9 @@
     "test": "npm run build -w @workorders/shared && npm run test -w @workorders/shared && npm run test -w backend && npm run test -w frontend",
     "test:coverage": "npm run build -w @workorders/shared && npm run test:coverage -w backend && npm run test:coverage -w frontend",
     "seed": "npm run seed -w backend",
-    "seed:demo": "npm run seed:demo -w backend"
+    "seed:demo": "npm run seed:demo -w backend",
+    "worker": "npm run worker -w backend",
+    "worker:dev": "npm run worker:dev -w backend"
   },
   "allowScripts": {
     "mongodb-memory-server": true,

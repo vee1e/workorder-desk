@@ -49,6 +49,27 @@ services:
     networks:
       - internal
 
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: prod
+    image: workorders-worker:prod
+    restart: unless-stopped
+    # Secrets come from .env — overrides below only fix container-local wiring.
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/workorders
+      TRUST_PROXY_HOPS: "1"
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - internal
+
   nginx:
     build:
       context: .
