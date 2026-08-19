@@ -33,7 +33,15 @@ export function createApp(): Express {
       },
     }),
   );
-  app.use(compression());
+  app.use(
+    compression({
+      filter: (req, res) => {
+        const type = res.getHeader('Content-Type');
+        if (typeof type === 'string' && type.includes('text/event-stream')) return false;
+        return compression.filter(req, res);
+      },
+    }),
+  );
   app.use(
     cors({
       origin: corsOrigins,
