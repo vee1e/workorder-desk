@@ -1,21 +1,13 @@
 import { env } from '../config/env.js';
 
-// Mirrors the AI_* env keys added by the env slice; typed here so this file compiles standalone.
-const aiEnv = env as unknown as {
-  AI_BASE_URL?: string;
-  AI_API_KEY?: string;
-  AI_MODEL: string;
-  AI_MAX_OUTPUT_TOKENS: number;
-};
-
 const TIMEOUT_MS = 60_000;
 const MAX_CONTENT_LENGTH = 1024 * 1024;
 const BAD_STATUS_BODY_LIMIT = 500;
 
-const base = aiEnv.AI_BASE_URL!.replace(/\/+$/, '') + '/chat/completions';
+const base = env.AI_BASE_URL!.replace(/\/+$/, '') + '/chat/completions';
 const headers = {
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${aiEnv.AI_API_KEY!}`,
+  Authorization: `Bearer ${env.AI_API_KEY!}`,
 };
 
 export interface ProviderMessage {
@@ -23,6 +15,7 @@ export interface ProviderMessage {
   content: string;
   tool_call_id?: string;
   name?: string;
+  tool_calls?: ProviderToolCall[];
 }
 
 export interface ProviderToolCall {
@@ -53,7 +46,7 @@ export class ProviderError extends Error {
   }
 }
 
-export const providerModel: string = aiEnv.AI_MODEL;
+export const providerModel: string = env.AI_MODEL;
 
 export function makeToolCall(id: string, name: string, args: unknown): ProviderToolCall {
   return { id, type: 'function', function: { name, arguments: JSON.stringify(args) } };
@@ -70,9 +63,9 @@ function buildBody(
   stream: boolean,
 ): Record<string, unknown> {
   return {
-    model: aiEnv.AI_MODEL,
+    model: env.AI_MODEL,
     messages,
-    max_tokens: maxTokens ?? aiEnv.AI_MAX_OUTPUT_TOKENS,
+    max_tokens: maxTokens ?? env.AI_MAX_OUTPUT_TOKENS,
     stream,
     ...(tools.length ? { tools, tool_choice: 'auto' } : {}),
     ...(stream ? { stream_options: { include_usage: true } } : {}),
