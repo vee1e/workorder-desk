@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     concurrency += 1;
     void (async () => {
       try {
-        const outcome = await runTriage(event.payloadRef);
+        const { outcome } = await runTriage(event.payloadRef);
         if (outcome === 'done' || outcome === 'skipped') {
           await agentRepo.completeOutbox(event._id.toString());
         } else if (event.attempts >= env.AGENT_MAX_ATTEMPTS) {

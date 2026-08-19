@@ -12,6 +12,11 @@ import type { ProviderMessage, ProviderResult } from './provider.js';
 
 export type TriageOutcome = 'done' | 'skipped' | 'failed' | 'retry';
 
+export interface TriageResult {
+  outcome: TriageOutcome;
+  runId: string | null;
+}
+
 type TriageProvider = typeof import('./provider.js');
 
 const SYSTEM_PROMPT =
@@ -38,33 +43,35 @@ export async function ensureTriageConfig(): Promise<void> {
   }
 }
 
-export async function runTriage(payloadRef: string): Promise<TriageOutcome> {
-  if (!env.AI_ENABLED) return 'skipped';
+export async function runTriage(payloadRef: string): Promise<TriageResult> {
+  if (!env.AI_ENABLED) return { outcome: 'skipped', runId: null };
 
   let config = await agentRepo.getAgentConfig('triage');
   if (!config) {
     await ensureTriageConfig();
     config = await agentRepo.getAgentConfig('triage');
   }
-  if (!config || !config.enabled) return 'skipped';
-  if (!isWorkingHours(config.workingHours, new Date())) return 'skipped';
+  if (!config || !config.enabled) return { outcome: 'skipped', runId: null };
+  if (!isWorkingHours(config.workingHours, new Date())) return { outcome: 'skipped', runId: null };
 
   const wo = await workOrderRepo.findById(payloadRef);
-  if (!wo) return 'skipped';
+  if (!wo) return { outcome: 'skipped', runId: null };
 
   const owner = wo.owner as unknown as { _id?: { toString(): string }; name?: string; email?: string } | null;
   const ownerId = owner?._id?.toString();
   if (ownerId) {
     const ownerUser = await userRepo.findById(ownerId);
-    if (ownerUser && ownerUser.aiEnabled === false) return 'skipped';
+    if (ownerUser && ownerUser.aiEnabled === false) return { outcome: 'skipped', runId: null };
   }
 
   const suggestionsToday = await agentRepo.countSuggestionsToday();
-  if (suggestionsToday >= config.dailyActionCap) return 'skipped';
+  if (suggestionsToday >= config.dailyActionCap) return { outcome: 'skipped', runId: null };
 
   const agentSpend = await agentRepo.getSpend('agent:triage');
   const globalSpend = await agentRepo.getSpend('global');
-  if (agentSpend >= env.AGENT_DAILY_SPEND_USD || globalSpend >= env.AI_GLOBAL_DAILY_SPEND_USD) return 'skipped';
+  if (agentSpend >= env.AGENT_DAILY_SPEND_USD || globalSpend >= env.AI_GLOBAL_DAILY_SPEND_USD) {
+    return { outcome: 'skipped', runId: null };
+  }
 
   const provider = await import('./provider.js');
   const run = await agentRepo.createRun({
@@ -74,17 +81,19 @@ export async function runTriage(payloadRef: string): Promise<TriageOutcome> {
     agentName: 'triage',
     model: env.AI_MODEL,
   });
+  const runId = run._id.toString();
 
   try {
-    return await runAttempts(config, run._id.toString(), payloadRef, wo, provider);
+    const outcome = await runAttempts(config, runId, payloadRef, wo, provider);
+    return { outcome, runId };
   } catch (err) {
     const transient = err instanceof provider.ProviderError;
-    await agentRepo.finishRun(run._id.toString(), {
+    await agentRepo.finishRun(runId, {
       status: 'error',
       finishedAt: new Date(),
       errorCode: transient ? 'AI_UNAVAILABLE' : 'INTERNAL',
     });
-    return transient ? 'retry' : 'failed';
+    return { outcome: transient ? 'retry' : 'failed', runId };
   }
 }
 

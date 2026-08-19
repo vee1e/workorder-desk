@@ -73,7 +73,7 @@ describe('triage agent', () => {
       providerResult({ content: proposal(), inputTokens: 100, outputTokens: 20 }),
     );
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('done');
+    expect(outcome.outcome).toBe('done');
     const suggestions = await TriageSuggestion.find({ workOrderId: wo.id });
     expect(suggestions).toHaveLength(1);
     expect(suggestions[0]).toMatchObject({ applied: false, suggestedPriority: 'high', flagForDispatcher: false });
@@ -90,7 +90,7 @@ describe('triage agent', () => {
     await agentRepo.updateAgentConfig('triage', { mode: 'auto-apply' }, 'admin');
     providerMock.chatComplete.mockResolvedValue(providerResult({ content: proposal({ suggestedPriority: 'high' }) }));
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('done');
+    expect(outcome.outcome).toBe('done');
     const fresh = await WorkOrder.findById(wo.id);
     expect(fresh?.priority).toBe('high');
     const suggestions = await TriageSuggestion.find({ workOrderId: wo.id });
@@ -100,7 +100,7 @@ describe('triage agent', () => {
   it('skips triage when the owner has AI disabled', async () => {
     const { wo } = await makeWorkOrder({ aiEnabled: false });
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('skipped');
+    expect(outcome.outcome).toBe('skipped');
     expect(providerMock.chatComplete).not.toHaveBeenCalled();
     expect(await TriageSuggestion.countDocuments()).toBe(0);
   });
@@ -109,7 +109,7 @@ describe('triage agent', () => {
     const { wo } = await makeWorkOrder();
     providerMock.chatComplete.mockResolvedValue(providerResult({ content: 'definitely not json' }));
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('failed');
+    expect(outcome.outcome).toBe('failed');
     expect(providerMock.chatComplete).toHaveBeenCalledTimes(3);
     const runs = (await agentRepo.listAdminRuns(1, 10)).items.filter((run) => run.mode === 'autonomous');
     expect(runs[0]).toMatchObject({ status: 'error', errorCode: 'AI_UNAVAILABLE' });
@@ -122,7 +122,7 @@ describe('triage agent', () => {
     const excluding = (hour + 2) % 24;
     await agentRepo.updateAgentConfig('triage', { workingHours: `${excluding}-${excluding}` }, 'admin');
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('skipped');
+    expect(outcome.outcome).toBe('skipped');
     expect(providerMock.chatComplete).not.toHaveBeenCalled();
   });
 
@@ -139,7 +139,7 @@ describe('triage agent', () => {
       applied: false,
     });
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('skipped');
+    expect(outcome.outcome).toBe('skipped');
     expect(providerMock.chatComplete).not.toHaveBeenCalled();
   });
 
@@ -147,7 +147,7 @@ describe('triage agent', () => {
     const { wo } = await makeWorkOrder();
     await agentRepo.chargeSpend('agent:triage', 100);
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('skipped');
+    expect(outcome.outcome).toBe('skipped');
     expect(providerMock.chatComplete).not.toHaveBeenCalled();
   });
 
@@ -155,7 +155,7 @@ describe('triage agent', () => {
     const { wo } = await makeWorkOrder();
     providerMock.chatComplete.mockRejectedValue(new providerMock.ProviderError('upstream down', 'network'));
     const outcome = await runTriage(wo.id);
-    expect(outcome).toBe('retry');
+    expect(outcome.outcome).toBe('retry');
     const runs = (await agentRepo.listAdminRuns(1, 10)).items.filter((run) => run.mode === 'autonomous');
     expect(runs[0]).toMatchObject({ status: 'error', errorCode: 'AI_UNAVAILABLE' });
   });

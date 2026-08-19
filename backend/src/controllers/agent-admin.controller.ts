@@ -94,8 +94,8 @@ export const agentAdminController = {
       } else {
         assertValidObjectId(workOrderId);
       }
-      const outcome = await runTriage(workOrderId);
-      res.status(200).json({ success: true, data: { outcome } });
+      const { outcome, runId } = await runTriage(workOrderId);
+      res.status(200).json({ success: true, data: { outcome, runId } });
     } catch (err) {
       next(err);
     }
