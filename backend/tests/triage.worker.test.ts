@@ -1,5 +1,6 @@
 import { providerResult } from './ai-helpers.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Types } from 'mongoose';
 import { ensureTriageConfig, isWorkingHours, runTriage } from '../src/agent/triage.js';
 import { agentRepo } from '../src/repositories/agent.repo.js';
 import { userRepo } from '../src/repositories/user.repo.js';
@@ -110,6 +111,51 @@ describe('triage agent', () => {
     const outcome = await runTriage(wo.id);
     expect(outcome).toBe('failed');
     expect(providerMock.chatComplete).toHaveBeenCalledTimes(3);
+    const runs = (await agentRepo.listAdminRuns(1, 10)).items.filter((run) => run.mode === 'autonomous');
+    expect(runs[0]).toMatchObject({ status: 'error', errorCode: 'AI_UNAVAILABLE' });
+  });
+
+  it('skips triage when outside the configured working hours', async () => {
+    const { wo } = await makeWorkOrder();
+    await ensureTriageConfig();
+    const hour = new Date().getUTCHours();
+    const excluding = (hour + 2) % 24;
+    await agentRepo.updateAgentConfig('triage', { workingHours: `${excluding}-${excluding}` }, 'admin');
+    const outcome = await runTriage(wo.id);
+    expect(outcome).toBe('skipped');
+    expect(providerMock.chatComplete).not.toHaveBeenCalled();
+  });
+
+  it('skips triage when the daily action cap is already reached', async () => {
+    const { wo } = await makeWorkOrder();
+    await ensureTriageConfig();
+    await agentRepo.updateAgentConfig('triage', { dailyActionCap: 1 }, 'admin');
+    await agentRepo.createSuggestion({
+      workOrderId: wo.id,
+      runId: new Types.ObjectId().toString(),
+      summary: 'Already flagged',
+      suggestedPriority: 'low',
+      flagForDispatcher: false,
+      applied: false,
+    });
+    const outcome = await runTriage(wo.id);
+    expect(outcome).toBe('skipped');
+    expect(providerMock.chatComplete).not.toHaveBeenCalled();
+  });
+
+  it('skips triage when the agent daily spend budget is exhausted', async () => {
+    const { wo } = await makeWorkOrder();
+    await agentRepo.chargeSpend('agent:triage', 100);
+    const outcome = await runTriage(wo.id);
+    expect(outcome).toBe('skipped');
+    expect(providerMock.chatComplete).not.toHaveBeenCalled();
+  });
+
+  it('returns retry when the provider fails transiently and records AI_UNAVAILABLE', async () => {
+    const { wo } = await makeWorkOrder();
+    providerMock.chatComplete.mockRejectedValue(new providerMock.ProviderError('upstream down', 'network'));
+    const outcome = await runTriage(wo.id);
+    expect(outcome).toBe('retry');
     const runs = (await agentRepo.listAdminRuns(1, 10)).items.filter((run) => run.mode === 'autonomous');
     expect(runs[0]).toMatchObject({ status: 'error', errorCode: 'AI_UNAVAILABLE' });
   });
