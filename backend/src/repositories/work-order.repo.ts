@@ -1,4 +1,5 @@
 import type { WorkOrderPriority, WorkOrderStatus } from '@workorders/shared';
+import { agentRepo } from './agent.repo.js';
 import { WorkOrder, type WorkOrderDoc } from '../models/work-order.model.js';
 import { signCursor, verifyCursor, type CursorPayload } from '../utils/cursor.js';
 import { validation } from '../utils/http-error.js';
@@ -74,7 +75,7 @@ export const workOrderRepo = {
     priority: WorkOrderPriority;
     status: WorkOrderStatus;
   }): Promise<WorkOrderDoc> {
-    return WorkOrder.create({
+    const doc = await WorkOrder.create({
       owner: input.ownerId,
       title: input.title,
       description: input.description ?? null,
@@ -82,6 +83,8 @@ export const workOrderRepo = {
       status: input.status,
       version: 1,
     });
+    await agentRepo.enqueueOutbox({ type: 'work_order.created', payloadRef: doc._id.toString() });
+    return doc;
   },
 
   async findById(id: string): Promise<WorkOrderDoc | null> {

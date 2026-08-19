@@ -64,4 +64,14 @@ export const adminService = {
     const [users, workOrders] = await Promise.all([userRepo.countAll(), workOrderRepo.countAll()]);
     return { users, workOrders, uptimeSeconds: Math.floor(process.uptime()) };
   },
+
+  async updateAiEnabled(adminId: string, targetId: string, aiEnabled: boolean): Promise<UserAdmin> {
+    assertValidObjectId(targetId, 'id');
+    if (targetId === adminId) throw forbidden('Cannot change your own AI access');
+    const target = await userRepo.findById(targetId);
+    if (!target) throw notFound();
+    const updated = await userRepo.updateAiEnabled(targetId, aiEnabled);
+    if (!updated) throw notFound();
+    return toUserAdmin(updated);
+  },
 };

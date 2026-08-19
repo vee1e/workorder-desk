@@ -1,9 +1,9 @@
-import type { WorkOrderPublic } from '@workorders/shared';
+import type { WorkOrderPriority, WorkOrderPublic } from '@workorders/shared';
 import { workOrderRepo, type WorkOrderListQuery } from '../repositories/work-order.repo.js';
 import { toWorkOrderPublicWithOwner } from '../models/work-order.model.js';
-import type { Actor } from '../utils/actor.js';
+import { isSystemActor, type Actor } from '../utils/actor.js';
 import { assertValidObjectId } from '../utils/object-id.js';
-import { conflictVersion, forbidden, notFound } from '../utils/http-error.js';
+import { conflictVersion, forbidden, notFound, validation } from '../utils/http-error.js';
 
 export interface WorkOrderListResult {
   items: WorkOrderPublic[];
@@ -34,6 +34,7 @@ export const workOrderService = {
   },
 
   async get(actor: Actor, id: string): Promise<WorkOrderPublic> {
+    if (isSystemActor(actor)) throw forbidden('System actors cannot use this endpoint');
     assertValidObjectId(id);
     const wo = await workOrderRepo.findById(id);
     if (!wo) throw notFound();
@@ -52,6 +53,7 @@ export const workOrderService = {
       version: number;
     },
   ): Promise<WorkOrderPublic> {
+    if (isSystemActor(actor)) throw forbidden('System actors cannot use this endpoint');
     assertWritable(actor);
     assertValidObjectId(id);
     const existing = await workOrderRepo.findById(id);
@@ -79,6 +81,7 @@ export const workOrderService = {
   },
 
   async remove(actor: Actor, id: string, version: number): Promise<void> {
+    if (isSystemActor(actor)) throw forbidden('System actors cannot use this endpoint');
     assertWritable(actor);
     assertValidObjectId(id);
     const existing = await workOrderRepo.findByIdIncludingDeleted(id);
@@ -97,6 +100,26 @@ export const workOrderService = {
       if (current.deletedAt) return; // idempotent
       throw conflictVersion();
     }
+  },
+
+  async triagePatch(actor: Actor, id: string, input: { priority?: WorkOrderPriority }): Promise<WorkOrderPublic> {
+    if (!isSystemActor(actor) || actor.capability !== 'triage') throw forbidden('Triage capability required');
+    assertValidObjectId(id);
+    if (input.priority === undefined) throw validation([{ field: 'priority', message: 'priority is required' }]);
+    const existing = await workOrderRepo.findByIdIncludingDeleted(id);
+    if (!existing) throw notFound();
+    if (existing.deletedAt) throw notFound();
+    const updated = await workOrderRepo.updateIfVersion({
+      id,
+      version: existing.version,
+      patch: { priority: input.priority },
+    });
+    if (!updated) {
+      const current = await workOrderRepo.findByIdIncludingDeleted(id);
+      if (!current || current.deletedAt) throw notFound();
+      throw conflictVersion();
+    }
+    return toWorkOrderPublicWithOwner(updated);
   },
 };
 
