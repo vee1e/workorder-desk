@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { CursorQuery, OffsetQuery, UpdateRoleInput, UpdateStatusInput } from '@workorders/shared';
+import type { CursorQuery, OffsetQuery, UpdateAiInput, UpdateRoleInput, UpdateStatusInput } from '@workorders/shared';
 import { adminService, type UserListQuery } from '../services/admin.service.js';
 import { actorOf, paramOf } from '../utils/request.js';
 
@@ -26,6 +26,15 @@ export const adminController = {
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = await adminService.updateStatus(actorOf(req).id, paramOf(req, 'id'), (req.body as UpdateStatusInput).isActive);
+      res.status(200).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateAi(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await adminService.updateAiEnabled(actorOf(req).id, paramOf(req, 'id'), (req.body as UpdateAiInput).aiEnabled);
       res.status(200).json({ success: true, data });
     } catch (err) {
       next(err);

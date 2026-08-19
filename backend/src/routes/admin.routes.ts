@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { cursorQuerySchema, offsetQuerySchema, updateRoleSchema, updateStatusSchema } from '@workorders/shared';
+import { cursorQuerySchema, offsetQuerySchema, updateAiSchema, updateRoleSchema, updateStatusSchema } from '@workorders/shared';
 import { adminController } from '../controllers/admin.controller.js';
 import { authenticate, requireAdmin, requireAdminOrViewer } from '../middleware/auth.middleware.js';
 import { validate, validateQuery } from '../middleware/validate.middleware.js';
@@ -15,4 +15,5 @@ adminRoutes.use(requireAdmin);
 adminRoutes.get('/users', validateQuery(offsetQuerySchema), adminController.listUsers);
 adminRoutes.patch('/users/:id/role', validate(updateRoleSchema), adminController.updateRole);
 adminRoutes.patch('/users/:id/status', validate(updateStatusSchema), adminController.updateStatus);
+adminRoutes.patch('/users/:id/ai', validate(updateAiSchema), adminController.updateAi);
 adminRoutes.get('/metrics', adminController.metrics);
