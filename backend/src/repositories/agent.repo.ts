@@ -265,6 +265,10 @@ export const agentRepo = {
     return TriageSuggestion.find({ workOrderId }).sort({ createdAt: -1 }).lean();
   },
 
+  async setSuggestionApplied(id: string): Promise<void> {
+    await TriageSuggestion.updateOne({ _id: id }, { $set: { applied: true } });
+  },
+
   async countSuggestionsToday(): Promise<number> {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
