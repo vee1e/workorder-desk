@@ -35,7 +35,9 @@ function isAbortError(err: unknown): boolean {
 
 async function assertUserEnabled(userId: string): Promise<void> {
   const user = await userRepo.findById(userId);
-  if (!user || !user.aiEnabled) throw forbidden('AI is disabled for this account');
+  // aiEnabled defaults to true; only an explicit false disables (legacy
+  // documents created before the field existed read as undefined).
+  if (!user || user.aiEnabled === false) throw forbidden('AI is disabled for this account');
 }
 
 const providerTools: ProviderTool[] = copilotTools.map((tool) => ({

@@ -64,7 +64,7 @@ export function toUserAdmin(user: UserDoc): UserAdmin {
   return {
     ...toUserPublic(user),
     isActive: user.isActive,
-    aiEnabled: user.aiEnabled,
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+    aiEnabled: user.aiEnabled ?? true,
   };
 }
