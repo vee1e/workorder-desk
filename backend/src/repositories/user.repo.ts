@@ -122,6 +122,10 @@ export const userRepo = {
     return User.findByIdAndUpdate(id, { $set: { isActive } }, { new: true }).lean();
   },
 
+  async updateAiEnabled(id: string, aiEnabled: boolean): Promise<UserDoc | null> {
+    return User.findByIdAndUpdate(id, { $set: { aiEnabled } }, { new: true }).lean();
+  },
+
   async updateName(id: string, name: string): Promise<UserDoc | null> {
     return User.findByIdAndUpdate(id, { $set: { name } }, { new: true }).lean();
   },

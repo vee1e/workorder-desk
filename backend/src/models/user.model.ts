@@ -11,6 +11,7 @@ export interface UserDoc {
   name: string;
   role: Role;
   isActive: boolean;
+  aiEnabled: boolean;
   lastLoginAt: Date | null;
   failedLoginCount: number;
   failedLoginWindowStartAt: Date | null;
@@ -30,6 +31,7 @@ const userSchema = new Schema<UserDoc>(
     name: { type: String, required: true },
     role: { type: String, enum: ['admin', 'user', 'viewer'], default: 'user' },
     isActive: { type: Boolean, default: true },
+    aiEnabled: { type: Boolean, default: true },
     lastLoginAt: { type: Date, default: null },
     failedLoginCount: { type: Number, default: 0 },
     failedLoginWindowStartAt: { type: Date, default: null },
@@ -62,6 +64,7 @@ export function toUserAdmin(user: UserDoc): UserAdmin {
   return {
     ...toUserPublic(user),
     isActive: user.isActive,
+    aiEnabled: user.aiEnabled,
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
   };
 }
