@@ -5,9 +5,9 @@
   "buildCommand": "npm run build -w @workorders/shared && npm run build -w frontend",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://workorders-api.onrender.com/api/$1" },
-    { "source": "/health", "destination": "https://workorders-api.onrender.com/health" },
-    { "source": "/ready", "destination": "https://workorders-api.onrender.com/ready" },
+    { "source": "/api/(.*)", "destination": "https://workorder-api.lverma.com/api/$1" },
+    { "source": "/health", "destination": "https://workorder-api.lverma.com/health" },
+    { "source": "/ready", "destination": "https://workorder-api.lverma.com/ready" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
